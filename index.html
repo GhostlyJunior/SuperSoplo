@@ -1,0 +1,2884 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Súper Soplo – Prototipo</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ==============================
+   DESIGN TOKENS
+============================== */
+:root {
+  --sky: #A7D8FF;
+  --mint: #B8F2D8;
+  --lilac: #D9C7FF;
+  --yellow: #FFE89A;
+  --coral: #FFB5A7;
+  --white: #FFFFFF;
+  --bg: #F7FBFF;
+  --text: #263238;
+  --text2: #607D8B;
+  --green: #7ED9A6;
+  --accent: #4DA3FF;
+  --accent2: #9B7EFF;
+  --radius: 24px;
+  --radius-sm: 14px;
+  --shadow: 0 4px 20px rgba(77,163,255,0.13);
+  --shadow-card: 0 6px 28px rgba(38,50,56,0.09);
+  font-family: 'Nunito', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #e8f4ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Nunito', sans-serif;
+  color: var(--text);
+}
+
+/* ==============================
+   DEVICE SHELL
+============================== */
+.device-shell {
+  width: 390px;
+  height: 844px;
+  background: var(--bg);
+  border-radius: 48px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.22), 0 0 0 2px #d0e8ff, inset 0 1px 0 rgba(255,255,255,0.8);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Notch */
+.device-shell::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 126px; height: 34px;
+  background: #1a2634;
+  border-radius: 0 0 24px 24px;
+  z-index: 100;
+}
+
+/* Status bar */
+.status-bar {
+  height: 44px;
+  padding: 12px 24px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text2);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 99;
+}
+
+.status-time { font-size: 13px; font-weight: 800; color: var(--text); }
+.status-icons { display: flex; gap: 4px; align-items: center; }
+.status-icons span { font-size: 12px; }
+
+/* ==============================
+   SCREEN SYSTEM
+============================== */
+.screen {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  animation: fadeIn 0.35s ease;
+}
+.screen.active { display: flex; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.06);} }
+@keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-12px);} }
+@keyframes spin { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+@keyframes growBar { from{width:0;} to{width:var(--target-w,60%);} }
+@keyframes sparkle { 0%,100%{opacity:0;transform:scale(0);} 50%{opacity:1;transform:scale(1);} }
+@keyframes confetti-fall {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(400px) rotate(720deg); opacity: 0; }
+}
+@keyframes bounce { 0%,100%{transform:translateY(0);} 40%{transform:translateY(-16px);} 70%{transform:translateY(-8px);} }
+
+.scroll-area { flex: 1; overflow-y: auto; padding: 0; }
+.scroll-area::-webkit-scrollbar { display: none; }
+
+/* ==============================
+   COMMON COMPONENTS
+============================== */
+.btn-primary {
+  width: 100%;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, var(--accent) 0%, #3b8fe8 100%);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(77,163,255,0.38);
+  transition: transform 0.15s, box-shadow 0.15s;
+  letter-spacing: 0.2px;
+}
+.btn-primary:active { transform: scale(0.97); box-shadow: 0 3px 10px rgba(77,163,255,0.25); }
+.btn-primary.lilac-btn {
+  background: linear-gradient(135deg, var(--accent2) 0%, #7b5fd4 100%);
+  box-shadow: 0 6px 20px rgba(155,126,255,0.38);
+}
+.btn-primary.green-btn {
+  background: linear-gradient(135deg, #52c97e 0%, #3aaf67 100%);
+  box-shadow: 0 6px 20px rgba(82,201,126,0.38);
+}
+.btn-primary.coral-btn {
+  background: linear-gradient(135deg, #ff7f6e 0%, #e8614f 100%);
+  box-shadow: 0 6px 20px rgba(255,127,110,0.35);
+}
+
+.btn-secondary {
+  width: 100%;
+  padding: 15px 24px;
+  background: white;
+  color: var(--accent);
+  border: 2.5px solid var(--accent);
+  border-radius: 20px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-secondary:active { background: var(--sky); }
+
+.btn-pause {
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.85);
+  border: 1.5px solid rgba(96,125,139,0.25);
+  border-radius: 12px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-pause:active { background: white; }
+
+.card {
+  background: white;
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.note-adult {
+  font-size: 11px;
+  color: var(--text2);
+  text-align: center;
+  line-height: 1.5;
+  padding: 0 20px;
+}
+
+.progress-stars {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+}
+.star { font-size: 36px; transition: all 0.4s; filter: grayscale(1) opacity(0.3); }
+.star.lit { filter: none; animation: bounce 0.5s ease; }
+
+/* ==============================
+   GAME HEADER
+============================== */
+.game-header {
+  padding: 12px 20px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  flex-shrink: 0;
+}
+.game-header-left { display: flex; flex-direction: column; }
+.game-header-title { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.game-header-count { font-size: 22px; font-weight: 900; color: var(--accent); line-height: 1; }
+.attempt-badge {
+  padding: 6px 14px;
+  background: var(--sky);
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #1a6eb5;
+}
+
+/* ==============================
+   PROGRESS BAR
+============================== */
+.breath-bar-wrap { 
+  background: #e8f4ff;
+  border-radius: 100px;
+  height: 20px;
+  overflow: hidden;
+  position: relative;
+}
+.breath-bar-fill {
+  height: 100%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--mint) 100%);
+  transition: width 0.4s ease;
+  position: relative;
+}
+.breath-bar-fill::after {
+  content: '💨';
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+}
+.breath-bar-fill.lilac-bar {
+  background: linear-gradient(90deg, var(--accent2) 0%, var(--lilac) 100%);
+}
+.breath-bar-fill.lilac-bar::after { content: '✨'; }
+
+/* ==============================
+   SCREEN 1 – SPLASH
+============================== */
+#screen-splash {
+  background: linear-gradient(160deg, #d6eeff 0%, #edf9f4 60%, #f0eaff 100%);
+}
+.splash-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 32px;
+  gap: 24px;
+}
+.splash-lungs {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  animation: float 3s ease-in-out infinite;
+}
+.splash-lungs svg { width: 100%; height: 100%; }
+
+.app-name {
+  font-size: 42px;
+  font-weight: 900;
+  color: var(--text);
+  text-align: center;
+  letter-spacing: -1px;
+  line-height: 1.1;
+}
+.app-name span { color: var(--accent); }
+
+.app-subtitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text2);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.splash-footer {
+  padding: 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+/* ==============================
+   SCREEN 2 – WELCOME
+============================== */
+#screen-welcome {
+  background: linear-gradient(160deg, #edf9f4 0%, #f7fbff 100%);
+}
+.welcome-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 28px;
+  gap: 20px;
+  text-align: center;
+}
+.welcome-title { font-size: 44px; font-weight: 900; color: var(--text); }
+.welcome-text { font-size: 18px; font-weight: 700; color: var(--text2); line-height: 1.6; }
+.welcome-illustration { 
+  width: 200px; 
+  height: 160px;
+  animation: float 4s ease-in-out infinite;
+}
+.welcome-footer { padding: 20px 28px; flex-shrink: 0; }
+
+/* ==============================
+   SCREEN 3 – INSTRUCTIONS
+============================== */
+#screen-instructions { background: var(--bg); }
+.instructions-content {
+  flex: 1;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+.screen-title {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--text);
+  padding: 0 0 4px;
+}
+.instr-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  border-radius: 20px;
+  padding: 18px 20px;
+  box-shadow: var(--shadow-card);
+}
+.instr-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+.instr-text { font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.4; }
+.instructions-footer { padding: 16px 24px 24px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
+
+/* ==============================
+   SCREEN 4 – SUPERVISION
+============================== */
+#screen-supervision {
+  background: linear-gradient(160deg, #fff9ed 0%, #f7fbff 100%);
+}
+.supervision-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 28px;
+  gap: 20px;
+  text-align: center;
+}
+.supervision-icon {
+  width: 90px; height: 90px;
+  background: linear-gradient(135deg, var(--yellow) 0%, #ffd470 100%);
+  border-radius: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
+  box-shadow: 0 6px 20px rgba(255,200,70,0.3);
+}
+.supervision-title { font-size: 28px; font-weight: 900; color: var(--text); }
+.supervision-card {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  text-align: left;
+  width: 100%;
+}
+.supervision-card p { font-size: 14px; font-weight: 600; color: var(--text2); line-height: 1.6; margin-bottom: 10px; }
+.supervision-card p:last-child { margin-bottom: 0; }
+.supervision-card .tag { 
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #fff3e0; color: #e65100;
+  padding: 4px 12px; border-radius: 100px;
+  font-size: 11px; font-weight: 800;
+  margin-bottom: 8px;
+}
+.supervision-footer { padding: 20px 28px 28px; flex-shrink: 0; }
+
+/* ==============================
+   SCREEN 5 – PROFILE SELECTION
+============================== */
+#screen-profile { background: var(--bg); }
+.profile-content {
+  flex: 1;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+.profile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+.profile-card {
+  flex: 1;
+  border-radius: 24px;
+  padding: 24px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  border: 3px solid transparent;
+  min-height: 160px;
+}
+.profile-card:active { transform: scale(0.97); }
+.profile-card.boy { background: linear-gradient(135deg, #d4eeff 0%, #c5f0e4 100%); }
+.profile-card.girl { background: linear-gradient(135deg, #f0eaff 0%, #fff2cc 100%); }
+.profile-card.selected.boy { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(77,163,255,0.2); }
+.profile-card.selected.girl { border-color: var(--accent2); box-shadow: 0 0 0 4px rgba(155,126,255,0.2); }
+.profile-card-icon { font-size: 64px; line-height: 1; }
+.profile-card-name { font-size: 22px; font-weight: 900; color: var(--text); }
+.profile-card-sub { font-size: 13px; font-weight: 700; color: var(--text2); text-align: center; }
+.profile-footer { padding: 16px 24px 24px; flex-shrink: 0; }
+
+/* ==============================
+   SCREEN 6 – AGE SELECTION
+============================== */
+#screen-age { background: var(--bg); }
+.age-content {
+  flex: 1;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.age-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  flex: 1;
+}
+.age-btn {
+  background: white;
+  border: 3px solid #e8f4ff;
+  border-radius: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+  min-height: 90px;
+}
+.age-btn:active { transform: scale(0.97); }
+.age-btn.selected { border-color: var(--accent); background: linear-gradient(135deg, #d4eeff 0%, #f0f8ff 100%); }
+.age-btn.selected.girl-selected { border-color: var(--accent2); background: linear-gradient(135deg, #f0eaff 0%, #fff5ff 100%); }
+.age-num { font-size: 36px; font-weight: 900; color: var(--text); }
+.age-label { font-size: 14px; font-weight: 700; color: var(--text2); }
+.age-footer { padding: 12px 24px 24px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+
+/* ==============================
+   SCREEN 7A/7B – INTRO ADVENTURE
+============================== */
+.intro-screen { background: var(--bg); }
+.intro-hero {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+.intro-scene {
+  width: 100%;
+  height: 220px;
+  border-radius: 24px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: var(--shadow-card);
+}
+.intro-title { font-size: 24px; font-weight: 900; color: var(--text); line-height: 1.3; }
+.intro-text { font-size: 16px; font-weight: 700; color: var(--text2); line-height: 1.5; }
+.intro-footer { padding: 16px 24px 24px; flex-shrink: 0; }
+
+/* ==============================
+   SCREEN 8 – TUTORIAL
+============================== */
+#screen-tutorial { background: var(--bg); }
+.tutorial-content {
+  flex: 1;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+.tutorial-card {
+  background: white;
+  border-radius: 22px;
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.tutorial-step-num {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--accent) 0%, #3b8fe8 100%);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 900; color: white;
+  flex-shrink: 0;
+}
+.tutorial-step-num.lilac { background: linear-gradient(135deg, var(--accent2) 0%, #7b5fd4 100%); }
+.tutorial-card-body { flex: 1; }
+.tutorial-card-title { font-size: 16px; font-weight: 900; color: var(--text); margin-bottom: 4px; }
+.tutorial-card-text { font-size: 14px; font-weight: 600; color: var(--text2); line-height: 1.5; }
+.tutorial-card-icon { font-size: 32px; margin-top: 8px; }
+.tutorial-footer { padding: 16px 24px 24px; flex-shrink: 0; }
+
+/* ==============================
+   SCREEN 9 – 3 BLOWS EXPLANATION
+============================== */
+#screen-threeblows { background: linear-gradient(160deg, #d4eeff 0%, #f7fbff 60%, #f0eaff 100%); }
+.threeblows-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 28px;
+  gap: 20px;
+  text-align: center;
+}
+.threeblows-title { font-size: 26px; font-weight: 900; color: var(--text); line-height: 1.3; }
+.threeblows-sub { font-size: 16px; font-weight: 700; color: var(--text2); line-height: 1.5; }
+.three-medals { display: flex; gap: 16px; justify-content: center; }
+.medal-empty {
+  width: 80px; height: 80px;
+  border-radius: 24px;
+  background: rgba(255,255,255,0.6);
+  border: 3px dashed rgba(77,163,255,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px;
+  filter: grayscale(1) opacity(0.3);
+}
+.threeblows-footer { padding: 20px 28px 28px; flex-shrink: 0; }
+
+/* ==============================
+   SCREENS 10/11/12 – GAME PHASES
+============================== */
+.game-screen { background: var(--bg); }
+.game-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 24px;
+  gap: 20px;
+  text-align: center;
+}
+.game-phase-title { font-size: 32px; font-weight: 900; color: var(--text); }
+.game-phase-sub { font-size: 18px; font-weight: 700; color: var(--text2); }
+.phase-timer-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+.phase-timer-bar {
+  width: 100%;
+  height: 8px;
+  background: #e8f4ff;
+  border-radius: 100px;
+  overflow: hidden;
+}
+.phase-timer-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--mint));
+  border-radius: 100px;
+  transition: width 1s linear;
+}
+.phase-timer-bar-fill.lilac {
+  background: linear-gradient(90deg, var(--accent2), var(--lilac));
+}
+.phase-timer-num {
+  font-size: 48px;
+  font-weight: 900;
+  color: var(--accent);
+  line-height: 1;
+}
+.phase-timer-num.lilac { color: var(--accent2); }
+.phase-timer-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.game-main-visual {
+  width: 200px; height: 200px;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.game-footer { padding: 16px 24px 24px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+
+/* Balloon */
+.balloon {
+  font-size: 100px;
+  animation: pulse 2s ease-in-out infinite;
+  line-height: 1;
+}
+.balloon.big { font-size: 120px; }
+
+/* Circular progress */
+.circular-progress {
+  position: absolute;
+  top: 0; left: 0;
+  width: 200px; height: 200px;
+}
+.circular-progress circle {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+.circ-bg { stroke: #e8f4ff; }
+.circ-fill {
+  stroke: var(--accent);
+  stroke-dasharray: 565;
+  stroke-dashoffset: 565;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  transition: stroke-dashoffset 0.5s ease;
+}
+.circ-fill.lilac { stroke: var(--accent2); }
+
+/* Phase indicator */
+.phase-indicator {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.phase-dot {
+  width: 10px; height: 10px;
+  border-radius: 100px;
+  background: #d0e4f0;
+  transition: all 0.3s;
+}
+.phase-dot.active { width: 28px; background: var(--accent); }
+.phase-dot.active.lilac { background: var(--accent2); }
+.phase-dot.done { background: var(--green); }
+
+/* Blow animation */
+.blow-scene {
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wind-lines {
+  display: flex;
+  gap: 6px;
+  flex-direction: column;
+}
+.wind-line {
+  height: 6px;
+  border-radius: 100px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  animation: growBar 1.5s ease-in-out infinite alternate;
+}
+.wind-line:nth-child(1) { width: 100px; animation-delay: 0s; }
+.wind-line:nth-child(2) { width: 140px; animation-delay: 0.15s; }
+.wind-line:nth-child(3) { width: 80px; animation-delay: 0.3s; }
+.wind-line:nth-child(4) { width: 120px; animation-delay: 0.1s; }
+.wind-line:nth-child(5) { width: 90px; animation-delay: 0.25s; }
+.wind-line.lilac { background: linear-gradient(90deg, var(--accent2), transparent); }
+
+/* Motivational text */
+.motive-text {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--accent);
+  animation: pulse 1s ease-in-out infinite;
+}
+.motive-text.lilac { color: var(--accent2); }
+
+/* ==============================
+   SCREEN 13 – VALIDATION
+============================== */
+#screen-validation { background: var(--bg); }
+.validation-content {
+  flex: 1;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+.validation-title { font-size: 24px; font-weight: 900; color: var(--text); }
+.validation-nice { 
+  background: linear-gradient(135deg, #e8f9f0 0%, #f0f9e8 100%);
+  border-radius: 18px; padding: 16px 20px;
+  display: flex; align-items: center; gap: 12px;
+}
+.validation-nice .v-icon { font-size: 32px; }
+.validation-nice .v-text { font-size: 16px; font-weight: 800; color: #2e7d52; }
+
+.validation-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 4px 0;
+}
+
+.reason-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.reason-btn {
+  background: white;
+  border: 2px solid #e8f0f5;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.reason-btn:active { border-color: var(--accent); color: var(--accent); background: #edf5ff; }
+.reason-btn.selected { border-color: var(--accent); color: var(--accent); background: #edf5ff; }
+.reason-btn.selected.lilac { border-color: var(--accent2); color: var(--accent2); background: #f0eaff; }
+
+.validation-footer { padding: 16px 24px 24px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+
+/* ==============================
+   SCREEN 14 – ATTEMPT SUCCESS
+============================== */
+.success-screen { background: linear-gradient(160deg, #e8f9f0 0%, #f7fbff 100%); }
+.success-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 28px;
+  gap: 20px;
+  text-align: center;
+}
+.success-big-icon { font-size: 80px; animation: bounce 0.8s ease; }
+.success-title { font-size: 30px; font-weight: 900; color: var(--text); }
+.success-sub { font-size: 16px; font-weight: 700; color: var(--text2); }
+.success-progress {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  width: 100%;
+}
+.progress-label { font-size: 13px; font-weight: 800; color: var(--text2); margin-bottom: 12px; text-align: center; }
+.success-footer { padding: 20px 28px 28px; flex-shrink: 0; }
+
+/* ==============================
+   SCREEN 15 – TRY AGAIN
+============================== */
+#screen-tryagain { background: linear-gradient(160deg, #fff9ed 0%, #f7fbff 100%); }
+.tryagain-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 28px;
+  gap: 20px;
+  text-align: center;
+}
+.tryagain-illustration { font-size: 90px; animation: float 3s ease-in-out infinite; }
+.tryagain-title { font-size: 28px; font-weight: 900; color: var(--text); }
+.tryagain-sub { font-size: 16px; font-weight: 700; color: var(--text2); line-height: 1.5; }
+.tryagain-footer { padding: 20px 28px 28px; flex-shrink: 0; }
+
+/* ==============================
+   SCREEN 16 – MISSION PROGRESS
+============================== */
+#screen-progress { background: linear-gradient(160deg, #edf9f4 0%, #f7fbff 100%); }
+.missionprog-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 28px;
+  gap: 24px;
+  text-align: center;
+}
+.missionprog-title { font-size: 28px; font-weight: 900; color: var(--text); }
+.missionprog-sub { font-size: 16px; font-weight: 700; color: var(--text2); }
+.missionprog-card {
+  background: white;
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: var(--shadow-card);
+  width: 100%;
+}
+.missionprog-footer { padding: 20px 28px 28px; flex-shrink: 0; }
+
+/* ==============================
+   SCREEN 17 – VICTORY
+============================== */
+.victory-screen {
+  background: linear-gradient(160deg, #c8f0e0 0%, #f0eaff 60%, #fff8e1 100%);
+  position: relative;
+  overflow: hidden;
+}
+.confetti-piece {
+  position: absolute;
+  font-size: 20px;
+  animation: confetti-fall 3s ease-in infinite;
+  pointer-events: none;
+}
+.victory-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 28px;
+  gap: 16px;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+.victory-trophy { font-size: 90px; animation: bounce 0.8s ease; }
+.victory-title { font-size: 32px; font-weight: 900; color: var(--text); line-height: 1.2; }
+.victory-sub { font-size: 16px; font-weight: 700; color: var(--text2); line-height: 1.5; }
+.victory-scene {
+  width: 100%;
+  height: 130px;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+}
+.victory-footer { padding: 16px 28px 24px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; position: relative; z-index: 2; }
+
+/* ==============================
+   SCREEN 18 – ADULT PANEL
+============================== */
+#screen-panel { background: var(--bg); }
+.panel-header {
+  padding: 14px 20px 10px;
+  background: #263238;
+  display: flex; align-items: center; gap: 12px;
+  flex-shrink: 0;
+}
+.panel-header-title { font-size: 16px; font-weight: 900; color: white; }
+.panel-tag { background: var(--yellow); color: #7a5f00; padding: 3px 10px; border-radius: 100px; font-size: 10px; font-weight: 800; }
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.panel-section-title { font-size: 11px; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+.panel-stat-row {
+  display: flex; gap: 10px;
+}
+.panel-stat {
+  flex: 1;
+  background: white;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: var(--shadow-card);
+  text-align: center;
+}
+.panel-stat-val { font-size: 26px; font-weight: 900; color: var(--accent); }
+.panel-stat-val.lilac { color: var(--accent2); }
+.panel-stat-label { font-size: 11px; font-weight: 700; color: var(--text2); }
+.panel-actions { display: flex; flex-direction: column; gap: 8px; }
+.panel-btn {
+  padding: 14px 20px;
+  border-radius: 14px;
+  border: none;
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.panel-btn.success { background: #e8f9f0; color: #2e7d52; }
+.panel-btn.retry { background: #fff9ed; color: #8b5a00; }
+.panel-btn.pause { background: #eef2f5; color: #455a64; }
+.panel-btn.danger { background: #fdecea; color: #c62828; }
+.panel-reasons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.panel-reason {
+  background: white;
+  border: 1.5px solid #e8f0f5;
+  border-radius: 12px;
+  padding: 10px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.panel-reason:hover { border-color: var(--accent); color: var(--accent); }
+.panel-footer { padding: 12px 16px 20px; flex-shrink: 0; }
+.panel-note { font-size: 10px; color: #90a4ae; text-align: center; line-height: 1.6; }
+
+/* ==============================
+   SCREEN 19 – PAUSE
+============================== */
+#screen-pause { background: linear-gradient(160deg, #edf5ff 0%, #f7fbff 100%); }
+.pause-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 28px;
+  gap: 24px;
+  text-align: center;
+}
+.pause-icon { font-size: 90px; animation: float 3s ease-in-out infinite; }
+.pause-title { font-size: 34px; font-weight: 900; color: var(--text); }
+.pause-sub { font-size: 18px; font-weight: 700; color: var(--text2); line-height: 1.5; }
+.pause-footer { padding: 20px 28px 32px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
+
+/* ==============================
+   SCREEN 20 – END SESSION
+============================== */
+#screen-end { background: linear-gradient(160deg, #edf9f4 0%, #f7fbff 100%); }
+.end-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 28px;
+  gap: 20px;
+  text-align: center;
+}
+.end-icon { font-size: 80px; animation: bounce 0.8s ease; }
+.end-title { font-size: 30px; font-weight: 900; color: var(--text); }
+.end-sub { font-size: 16px; font-weight: 700; color: var(--text2); line-height: 1.5; }
+.end-footer { padding: 20px 28px 28px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+
+/* ==============================
+   SECTION HEADER (reused)
+============================== */
+.section-header {
+  padding: 12px 24px 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.section-header .back-btn {
+  width: 38px; height: 38px;
+  background: white;
+  border: none;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  flex-shrink: 0;
+}
+.section-header-title {
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--text);
+  flex: 1;
+}
+
+/* ==============================
+   TURBO SVG SCENE (BOY)
+============================== */
+.scene-boy {
+  width: 100%; height: 100%;
+  background: linear-gradient(180deg, #89d4ff 0%, #c5ecff 50%, #a8e8c8 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ==============================
+   LIA SVG SCENE (GIRL)
+============================== */
+.scene-girl {
+  width: 100%; height: 100%;
+  background: linear-gradient(180deg, #c8b4ff 0%, #e8d8ff 50%, #ffd4e8 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ==============================
+   FLOATING PANEL BUTTON
+============================== */
+.fab-panel {
+  position: absolute;
+  bottom: 100px;
+  right: 20px;
+  width: 48px; height: 48px;
+  background: rgba(38,50,56,0.85);
+  border-radius: 50%;
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  z-index: 50;
+  transition: all 0.2s;
+}
+.fab-panel:active { transform: scale(0.93); }
+
+.fab-audio {
+  position: absolute;
+  top: 52px;
+  right: 16px;
+  width: 38px;
+  height: 38px;
+  background: rgba(255,255,255,0.9);
+  border: 1.5px solid rgba(96,125,139,0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 200;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+}
+.fab-audio:active { transform: scale(0.93); }
+
+/* ==============================
+   NAVIGATION DOTS (demo)
+============================== */
+.nav-indicator {
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.nav-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(77,163,255,0.2); }
+.nav-dot.current { background: var(--accent); width: 20px; border-radius: 100px; }
+
+/* ==============================
+   DEMO OVERLAY NAV
+============================== */
+.demo-nav {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(38,50,56,0.92);
+  border-radius: 20px;
+  padding: 10px 16px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  z-index: 9999;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+.demo-nav-btn {
+  padding: 6px 14px;
+  border-radius: 12px;
+  border: none;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  font-family: 'Nunito', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.demo-nav-btn:hover { background: rgba(255,255,255,0.25); }
+.demo-nav-btn.active { background: var(--accent); }
+.demo-nav-label { color: rgba(255,255,255,0.5); font-size: 10px; font-weight: 600; }
+
+/* ==============================
+   RESPONSIVE
+============================== */
+@media (max-width: 500px) {
+  body { align-items: flex-start; background: var(--bg); padding-bottom: 80px; }
+  .device-shell { width: 100%; height: auto; min-height: 100vh; border-radius: 0; }
+  .device-shell::before { display: none; }
+  .status-bar { display: none; }
+}
+
+/* ==============================
+   ANIMATIONS - GAME SPECIFIC
+============================== */
+@keyframes turboRace {
+  0% { transform: translateX(-100px); }
+  100% { transform: translateX(20px); }
+}
+@keyframes castleRise {
+  0% { transform: scaleY(0); transform-origin: bottom; }
+  100% { transform: scaleY(1); transform-origin: bottom; }
+}
+@keyframes starPop {
+  0% { transform: scale(0) rotate(-15deg); opacity: 0; }
+  70% { transform: scale(1.2) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.turbo-car { animation: float 2s ease-in-out infinite; }
+.lia-char { animation: float 2.5s ease-in-out infinite; }
+
+/* ==============================
+   SPECIAL: Attempt tracker 
+============================== */
+.attempt-tracker {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.attempt-circle {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: #e8f4ff;
+  border: 3px solid #c5dff0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  transition: all 0.4s;
+}
+.attempt-circle.done {
+  background: linear-gradient(135deg, var(--green) 0%, #52c97e 100%);
+  border-color: #3aaf67;
+  animation: starPop 0.5s ease;
+}
+.attempt-circle.done.lilac {
+  background: linear-gradient(135deg, var(--accent2) 0%, #7b5fd4 100%);
+  border-color: #6a4fc2;
+}
+
+</style>
+</head>
+<body>
+
+<div class="device-shell">
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <div class="status-icons">
+      <span>📶</span>
+      <span>🔋</span>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 1: SPLASH
+  ============================================================ -->
+  <div class="screen active" id="screen-splash">
+    <div class="splash-content">
+      <div class="splash-lungs">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <!-- Lung Left -->
+          <ellipse cx="70" cy="120" rx="45" ry="62" fill="#A7D8FF" opacity="0.8"/>
+          <ellipse cx="62" cy="115" rx="30" ry="45" fill="#d4eeff"/>
+          <!-- Bronchi Left -->
+          <path d="M100 80 Q90 100 75 110" stroke="#4DA3FF" stroke-width="6" fill="none" stroke-linecap="round"/>
+          <!-- Lung Right -->
+          <ellipse cx="130" cy="120" rx="45" ry="62" fill="#B8F2D8" opacity="0.8"/>
+          <ellipse cx="138" cy="115" rx="30" ry="45" fill="#d8f8ec"/>
+          <!-- Bronchi Right -->
+          <path d="M100 80 Q110 100 125 110" stroke="#7ED9A6" stroke-width="6" fill="none" stroke-linecap="round"/>
+          <!-- Trachea -->
+          <rect x="94" y="40" width="12" height="44" rx="6" fill="#4DA3FF"/>
+          <!-- Happy faces -->
+          <circle cx="70" cy="125" r="22" fill="white" opacity="0.9"/>
+          <circle cx="130" cy="125" r="22" fill="white" opacity="0.9"/>
+          <!-- Eyes left -->
+          <circle cx="63" cy="120" r="3" fill="#263238"/>
+          <circle cx="77" cy="120" r="3" fill="#263238"/>
+          <!-- Smile left -->
+          <path d="M62 130 Q70 137 78 130" stroke="#263238" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <!-- Eyes right -->
+          <circle cx="123" cy="120" r="3" fill="#263238"/>
+          <circle cx="137" cy="120" r="3" fill="#263238"/>
+          <!-- Smile right -->
+          <path d="M122 130 Q130 137 138 130" stroke="#263238" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <!-- Sparkles -->
+          <text x="20" y="70" font-size="18" opacity="0.7">✨</text>
+          <text x="155" y="65" font-size="14" opacity="0.7">⭐</text>
+          <text x="35" y="170" font-size="12" opacity="0.6">💫</text>
+          <text x="150" y="175" font-size="16" opacity="0.7">✨</text>
+        </svg>
+      </div>
+      <div>
+        <div class="app-name">Súper<br><span>Soplo</span></div>
+        <div class="app-subtitle" style="margin-top:8px">Un juego para entrenar<br>tus pulmones</div>
+      </div>
+    </div>
+    <div class="splash-footer">
+      <button class="btn-primary" onclick="goTo('screen-welcome')">Empezar 🚀</button>
+      <p class="note-adult">Usar con supervisión de un adulto o terapeuta.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 2: WELCOME
+  ============================================================ -->
+  <div class="screen" id="screen-welcome">
+    <div class="welcome-content">
+      <div class="welcome-illustration">
+        <svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
+          <!-- Child silhouette -->
+          <circle cx="100" cy="45" r="30" fill="#FFE89A"/>
+          <!-- Face -->
+          <circle cx="91" cy="41" r="4" fill="#263238"/>
+          <circle cx="109" cy="41" r="4" fill="#263238"/>
+          <path d="M91 55 Q100 63 109 55" stroke="#263238" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <!-- Body -->
+          <rect x="78" y="72" width="44" height="52" rx="14" fill="#A7D8FF"/>
+          <!-- Arms -->
+          <line x1="78" y1="82" x2="52" y2="100" stroke="#FFE89A" stroke-width="14" stroke-linecap="round"/>
+          <line x1="122" y1="82" x2="148" y2="100" stroke="#FFE89A" stroke-width="14" stroke-linecap="round"/>
+          <!-- Balloons -->
+          <ellipse cx="45" cy="70" rx="18" ry="22" fill="#FFB5A7" opacity="0.9"/>
+          <line x1="45" y1="92" x2="52" y2="100" stroke="#FFB5A7" stroke-width="2"/>
+          <ellipse cx="158" cy="60" rx="15" ry="19" fill="#D9C7FF" opacity="0.9"/>
+          <line x1="158" y1="79" x2="148" y2="100" stroke="#D9C7FF" stroke-width="2"/>
+          <ellipse cx="30" cy="50" rx="12" ry="15" fill="#B8F2D8" opacity="0.9"/>
+          <line x1="30" y1="65" x2="45" y2="70" stroke="#B8F2D8" stroke-width="2"/>
+          <!-- Sparkles -->
+          <text x="60" y="35" font-size="14">✨</text>
+          <text x="130" y="30" font-size="12">⭐</text>
+          <text x="15" y="45" font-size="10">💫</text>
+          <!-- Legs -->
+          <rect x="84" y="120" width="14" height="32" rx="7" fill="#FFE89A"/>
+          <rect x="102" y="120" width="14" height="32" rx="7" fill="#FFE89A"/>
+        </svg>
+      </div>
+      <div class="welcome-title">¡Hola! 👋</div>
+      <div class="welcome-text">
+        Hoy vamos a jugar<br>con tu respiración.<br><br>
+        Tus pulmones son como<br>globitos que se inflan<br>y se desinflan. 🎈
+      </div>
+    </div>
+    <div class="welcome-footer">
+      <button class="btn-primary" onclick="goTo('screen-instructions')">Vamos a jugar ✨</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 3: INSTRUCTIONS
+  ============================================================ -->
+  <div class="screen" id="screen-instructions">
+    <div class="section-header">
+      <button class="back-btn" onclick="goTo('screen-welcome')">←</button>
+      <div class="section-header-title">Antes de empezar</div>
+    </div>
+    <div class="instructions-content">
+      <div class="screen-title">Antes de<br>empezar 📋</div>
+      <div class="instr-card">
+        <div class="instr-icon" style="background:#e8f4ff;">👕</div>
+        <div class="instr-text">Usa ropa cómoda y holgada para respirar bien.</div>
+      </div>
+      <div class="instr-card">
+        <div class="instr-icon" style="background:#fff3e8;">🥗</div>
+        <div class="instr-text">Evita comidas pesadas justo antes del juego.</div>
+      </div>
+      <div class="instr-card">
+        <div class="instr-icon" style="background:#f0eaff;">💊</div>
+        <div class="instr-text">Sigue las indicaciones sobre tus medicamentos.</div>
+      </div>
+      <div class="instr-card">
+        <div class="instr-icon" style="background:#e8f9f0;">🧑‍⚕️</div>
+        <div class="instr-text">Consulta siempre con el profesional si tienes dudas.</div>
+      </div>
+    </div>
+    <div class="instructions-footer">
+      <button class="btn-primary" onclick="goTo('screen-supervision')">Entendido ✅</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 4: ADULT SUPERVISION NOTICE
+  ============================================================ -->
+  <div class="screen" id="screen-supervision">
+    <div class="supervision-content">
+      <div class="supervision-icon">🧑‍⚕️</div>
+      <div class="supervision-title">Supervisión</div>
+      <div class="supervision-card">
+        <div class="tag">👋 Para adultos y terapeutas</div>
+        <p>Esta app es una guía visual y no reemplaza la indicación del profesional de salud.</p>
+        <p><strong>No se guardan datos personales en esta versión.</strong></p>
+      </div>
+      <div style="background:linear-gradient(135deg,#fff9ed,#fff3cc);border-radius:16px;padding:16px 20px;width:100%;">
+        <div style="font-size:13px;font-weight:800;color:#7a5f00;display:flex;align-items:center;gap:8px;">⚠️ Recordatorio</div>
+        <div style="font-size:13px;font-weight:600;color:#8b6a00;margin-top:6px;line-height:1.5;">La duración del soplo es orientativa y debe ser supervisada por el terapeuta.</div>
+      </div>
+    </div>
+    <div class="supervision-footer">
+      <button class="btn-primary" onclick="goTo('screen-profile')">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 5: PROFILE SELECTION
+  ============================================================ -->
+  <div class="screen" id="screen-profile">
+    <div class="section-header">
+      <button class="back-btn" onclick="goTo('screen-supervision')">←</button>
+      <div class="section-header-title">¿Quién va a jugar?</div>
+    </div>
+    <div class="profile-content">
+      <div style="font-size:22px;font-weight:900;color:var(--text);padding:0 0 4px;">¿Quién va a<br>jugar hoy? 🎮</div>
+      <div class="profile-cards">
+        <div class="profile-card boy" id="card-boy" onclick="selectProfile('boy')">
+          <div style="font-size:70px;line-height:1;">
+            <svg viewBox="0 0 100 100" width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+              <!-- Turbo car preview -->
+              <rect x="15" y="55" width="70" height="28" rx="12" fill="#4DA3FF"/>
+              <rect x="22" y="42" width="50" height="22" rx="10" fill="#7ec8ff"/>
+              <circle cx="28" cy="83" r="10" fill="#263238"/><circle cx="28" cy="83" r="5" fill="#90a4ae"/>
+              <circle cx="72" cy="83" r="10" fill="#263238"/><circle cx="72" cy="83" r="5" fill="#90a4ae"/>
+              <!-- Flames -->
+              <ellipse cx="15" cy="65" rx="8" ry="5" fill="#FFE89A" opacity="0.9"/>
+              <ellipse cx="12" cy="65" rx="5" ry="3" fill="#FFB5A7"/>
+              <!-- Stars -->
+              <text x="60" y="35" font-size="14">⭐</text>
+              <text x="10" y="40" font-size="12">💨</text>
+            </svg>
+          </div>
+          <div class="profile-card-name">Niño</div>
+          <div class="profile-card-sub">Ayuda a Turbo<br>a ganar la carrera</div>
+          <div id="check-boy" style="display:none;font-size:24px;">✅</div>
+        </div>
+        <div class="profile-card girl" id="card-girl" onclick="selectProfile('girl')">
+          <div style="font-size:70px;line-height:1;">
+            <svg viewBox="0 0 100 100" width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+              <!-- Castle preview -->
+              <rect x="30" y="55" width="40" height="35" rx="4" fill="#D9C7FF"/>
+              <rect x="25" y="45" width="14" height="20" rx="3" fill="#c4aff7"/>
+              <rect x="61" y="45" width="14" height="20" rx="3" fill="#c4aff7"/>
+              <rect x="38" y="38" width="24" height="24" rx="4" fill="#b899ff"/>
+              <!-- Door -->
+              <rect x="42" y="72" width="16" height="18" rx="8" fill="#8b6be8"/>
+              <!-- Stars -->
+              <text x="10" y="35" font-size="16">✨</text>
+              <text x="72" y="28" font-size="14">⭐</text>
+              <text x="45" y="25" font-size="12">💫</text>
+            </svg>
+          </div>
+          <div class="profile-card-name">Niña</div>
+          <div class="profile-card-sub">Ayuda a Lía a<br>construir su castillo</div>
+          <div id="check-girl" style="display:none;font-size:24px;">✅</div>
+        </div>
+      </div>
+    </div>
+    <div class="profile-footer">
+      <button class="btn-primary" id="btn-profile-continue" style="opacity:0.4;pointer-events:none;" onclick="continueFromProfile()">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 6: AGE SELECTION
+  ============================================================ -->
+  <div class="screen" id="screen-age">
+    <div class="section-header">
+      <button class="back-btn" onclick="goTo('screen-profile')">←</button>
+      <div class="section-header-title">Tu edad</div>
+    </div>
+    <div class="age-content">
+      <div style="font-size:22px;font-weight:900;color:var(--text);">¿Cuántos años<br>tienes? 🎂</div>
+      <div class="age-grid">
+        <div class="age-btn" id="age-4" onclick="selectAge(4)">
+          <div class="age-num">4</div>
+          <div class="age-label">años</div>
+        </div>
+        <div class="age-btn" id="age-5" onclick="selectAge(5)">
+          <div class="age-num">5</div>
+          <div class="age-label">años</div>
+        </div>
+        <div class="age-btn" id="age-6" onclick="selectAge(6)">
+          <div class="age-num">6</div>
+          <div class="age-label">años</div>
+        </div>
+        <div class="age-btn" id="age-7" onclick="selectAge(7)">
+          <div class="age-num">7</div>
+          <div class="age-label">años</div>
+        </div>
+        <div class="age-btn" id="age-8" onclick="selectAge(8)">
+          <div class="age-num">8</div>
+          <div class="age-label">años</div>
+        </div>
+        <div class="age-btn" id="age-9" onclick="selectAge(9)">
+          <div class="age-num">9</div>
+          <div class="age-label">años</div>
+        </div>
+        <div style="visibility:hidden;pointer-events:none;"></div>
+        <div class="age-btn" id="age-10" onclick="selectAge(10)">
+          <div class="age-num">10</div>
+          <div class="age-label">años</div>
+        </div>
+        <div style="visibility:hidden;pointer-events:none;"></div>
+      </div>
+    </div>
+    <div class="age-footer">
+      <p class="note-adult" style="background:#fff9ed;border-radius:12px;padding:10px 14px;text-align:left;">⚠️ La duración del soplo es orientativa y debe ser supervisada por el terapeuta.</p>
+      <button class="btn-primary" id="btn-age-continue" style="opacity:0.4;pointer-events:none;" onclick="continueFromAge()">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 7A: BOY ADVENTURE INTRO
+  ============================================================ -->
+  <div class="screen" id="screen-intro-boy">
+    <div class="section-header">
+      <button class="back-btn" onclick="goTo('screen-age')">←</button>
+      <div class="section-header-title">Aventura Turbo</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px 24px;display:flex;flex-direction:column;gap:16px;">
+      <div class="intro-scene">
+        <div class="scene-boy">
+          <svg viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            <!-- Sky & clouds -->
+            <rect width="360" height="220" fill="#89d4ff"/>
+            <ellipse cx="60" cy="45" rx="50" ry="25" fill="white" opacity="0.8"/>
+            <ellipse cx="280" cy="35" rx="45" ry="22" fill="white" opacity="0.8"/>
+            <ellipse cx="180" cy="55" rx="40" ry="20" fill="white" opacity="0.7"/>
+            <!-- Road -->
+            <rect x="0" y="150" width="360" height="70" fill="#a0b0c0"/>
+            <rect x="0" y="148" width="360" height="8" fill="#607080"/>
+            <!-- Road markings -->
+            <rect x="0" y="170" width="60" height="6" rx="3" fill="white" opacity="0.7"/>
+            <rect x="90" y="170" width="60" height="6" rx="3" fill="white" opacity="0.7"/>
+            <rect x="180" y="170" width="60" height="6" rx="3" fill="white" opacity="0.7"/>
+            <rect x="270" y="170" width="60" height="6" rx="3" fill="white" opacity="0.7"/>
+            <!-- Flags -->
+            <line x1="310" y1="90" x2="310" y2="155" stroke="#607080" stroke-width="3"/>
+            <polygon points="310,90 340,100 310,110" fill="#FFB5A7"/>
+            <line x1="40" y1="100" x2="40" y2="155" stroke="#607080" stroke-width="3"/>
+            <polygon points="40,100 70,110 40,120" fill="#B8F2D8"/>
+            <!-- TURBO CAR -->
+            <g transform="translate(120,115)" class="turbo-car">
+              <!-- Body -->
+              <rect x="0" y="20" width="90" height="32" rx="12" fill="#4DA3FF"/>
+              <!-- Cockpit -->
+              <rect x="12" y="8" width="60" height="22" rx="10" fill="#7ec8ff"/>
+              <!-- Windshield -->
+              <rect x="18" y="10" width="40" height="16" rx="6" fill="#c8e8ff" opacity="0.8"/>
+              <!-- Wheels -->
+              <circle cx="18" cy="52" r="13" fill="#263238"/>
+              <circle cx="18" cy="52" r="6" fill="#607080"/>
+              <circle cx="72" cy="52" r="13" fill="#263238"/>
+              <circle cx="72" cy="52" r="6" fill="#607080"/>
+              <!-- Number -->
+              <text x="38" y="35" font-size="12" font-weight="900" fill="white" font-family="Nunito">1</text>
+              <!-- Flames -->
+              <ellipse cx="-5" cy="30" rx="12" ry="7" fill="#FFE89A" opacity="0.9"/>
+              <ellipse cx="-10" cy="30" rx="7" ry="4" fill="#FFB5A7"/>
+              <!-- Star on car -->
+              <text x="60" y="25" font-size="14">⭐</text>
+            </g>
+            <!-- Banner -->
+            <text x="135" y="135" font-size="13" font-weight="900" fill="#4DA3FF" font-family="Nunito">¡TURBO!</text>
+            <!-- Sparkles -->
+            <text x="240" y="110" font-size="18" opacity="0.9">✨</text>
+            <text x="80" y="115" font-size="14" opacity="0.8">💨</text>
+          </svg>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <div class="intro-title">¡Ayuda a Turbo<br>a ganar la carrera! 🏁</div>
+      </div>
+      <div class="card" style="padding:20px;">
+        <div style="font-size:16px;font-weight:700;color:var(--text2);line-height:1.6;text-align:center;">
+          Vamos a hacer <strong style="color:var(--accent);">3 súper soplos</strong>.<br>
+          Cada soplo ayuda a Turbo<br>a llegar más lejos. 🚀
+        </div>
+      </div>
+    </div>
+    <div class="intro-footer">
+      <button class="btn-primary" onclick="goTo('screen-tutorial')">Empezar carrera 🏎️</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 7B: GIRL ADVENTURE INTRO
+  ============================================================ -->
+  <div class="screen" id="screen-intro-girl">
+    <div class="section-header">
+      <button class="back-btn" onclick="goTo('screen-age')">←</button>
+      <div class="section-header-title">Aventura Lía</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px 24px;display:flex;flex-direction:column;gap:16px;">
+      <div class="intro-scene">
+        <div class="scene-girl">
+          <svg viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            <!-- Sky -->
+            <rect width="360" height="220" fill="#c8b4ff"/>
+            <!-- Stars background -->
+            <text x="20" y="40" font-size="16" opacity="0.7">✨</text>
+            <text x="80" y="25" font-size="12" opacity="0.6">⭐</text>
+            <text x="280" y="30" font-size="18" opacity="0.8">💫</text>
+            <text x="320" y="55" font-size="14" opacity="0.7">✨</text>
+            <text x="170" y="20" font-size="10" opacity="0.6">⭐</text>
+            <!-- Mountains/hills -->
+            <ellipse cx="60" cy="200" rx="80" ry="60" fill="#b8a0f0" opacity="0.5"/>
+            <ellipse cx="300" cy="200" rx="80" ry="55" fill="#c4aaff" opacity="0.5"/>
+            <!-- CASTLE -->
+            <g transform="translate(100,50)">
+              <!-- Main tower center -->
+              <rect x="55" y="70" width="50" height="95" rx="6" fill="#e8d8ff"/>
+              <!-- Battlements center -->
+              <rect x="53" y="60" width="12" height="16" rx="3" fill="#d4bfff"/>
+              <rect x="69" y="60" width="12" height="16" rx="3" fill="#d4bfff"/>
+              <rect x="85" y="60" width="12" height="16" rx="3" fill="#d4bfff"/>
+              <!-- Left tower -->
+              <rect x="20" y="85" width="38" height="80" rx="5" fill="#d4bfff"/>
+              <rect x="18" y="75" width="10" height="14" rx="3" fill="#c4aaff"/>
+              <rect x="30" y="75" width="10" height="14" rx="3" fill="#c4aaff"/>
+              <rect x="42" y="75" width="10" height="14" rx="3" fill="#c4aaff"/>
+              <!-- Right tower -->
+              <rect x="102" y="85" width="38" height="80" rx="5" fill="#d4bfff"/>
+              <rect x="100" y="75" width="10" height="14" rx="3" fill="#c4aaff"/>
+              <rect x="112" y="75" width="10" height="14" rx="3" fill="#c4aaff"/>
+              <rect x="124" y="75" width="10" height="14" rx="3" fill="#c4aaff"/>
+              <!-- Door arch -->
+              <rect x="68" y="130" width="24" height="35" rx="12" fill="#9b7eff"/>
+              <!-- Windows -->
+              <circle cx="80" cy="100" r="8" fill="#b8a0ff"/>
+              <circle cx="39" cy="110" r="6" fill="#c4aaff"/>
+              <circle cx="121" cy="110" r="6" fill="#c4aaff"/>
+              <!-- Roof cones -->
+              <polygon points="80,40 65,68 95,68" fill="#9b7eff"/>
+              <polygon points="39,58 27,82 51,82" fill="#9b7eff" opacity="0.9"/>
+              <polygon points="121,58 109,82 133,82" fill="#9b7eff" opacity="0.9"/>
+            </g>
+            <!-- LIA character (simple) -->
+            <g transform="translate(255,80)" class="lia-char">
+              <!-- Dress/body -->
+              <ellipse cx="30" cy="90" rx="22" ry="30" fill="#c4aaff"/>
+              <!-- Magic glow -->
+              <ellipse cx="30" cy="90" rx="26" ry="33" fill="#d9c7ff" opacity="0.4"/>
+              <!-- Head -->
+              <circle cx="30" cy="55" r="22" fill="#FFE89A"/>
+              <!-- Crown -->
+              <polygon points="18,37 22,28 30,34 38,28 42,37" fill="#9b7eff"/>
+              <circle cx="30" cy="32" r="4" fill="#FFE89A"/>
+              <!-- Eyes -->
+              <circle cx="24" cy="52" r="3.5" fill="#263238"/>
+              <circle cx="36" cy="52" r="3.5" fill="#263238"/>
+              <!-- Smile -->
+              <path d="M24 62 Q30 68 36 62" stroke="#263238" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <!-- Hair -->
+              <ellipse cx="30" cy="40" rx="22" ry="10" fill="#c8a0ff"/>
+              <!-- Magic wand -->
+              <line x1="52" y1="60" x2="70" y2="40" stroke="#d9c7ff" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="70" cy="40" r="6" fill="#FFE89A" opacity="0.9"/>
+              <text x="60" y="28" font-size="12">✨</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <div class="intro-title">¡Ayuda a Lía a<br>construir su castillo! 🏰</div>
+      </div>
+      <div class="card" style="padding:20px;">
+        <div style="font-size:16px;font-weight:700;color:var(--text2);line-height:1.6;text-align:center;">
+          Vamos a hacer <strong style="color:var(--accent2);">3 súper soplos</strong>.<br>
+          Cada soplo crea una parte<br>del castillo mágico. ✨
+        </div>
+      </div>
+    </div>
+    <div class="intro-footer">
+      <button class="btn-primary lilac-btn" onclick="goTo('screen-tutorial')">Empezar magia ✨</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 8: TUTORIAL
+  ============================================================ -->
+  <div class="screen" id="screen-tutorial">
+    <div class="section-header">
+      <button class="back-btn" onclick="goToIntro()">←</button>
+      <div class="section-header-title">Así se juega</div>
+    </div>
+    <div class="tutorial-content">
+      <div class="screen-title">Así se<br>juega 🎯</div>
+      <div class="tutorial-card">
+        <div class="tutorial-step-num" id="tut-num-1">1</div>
+        <div class="tutorial-card-body">
+          <div class="tutorial-card-title">Gran toma de aire</div>
+          <div class="tutorial-card-text">Toma todo el aire que puedas. Como si inflaras un globo gigante.</div>
+          <div class="tutorial-card-icon">🫁→🎈</div>
+        </div>
+      </div>
+      <div class="tutorial-card">
+        <div class="tutorial-step-num" id="tut-num-2">2</div>
+        <div class="tutorial-card-body">
+          <div class="tutorial-card-title">Soplido fuerte</div>
+          <div class="tutorial-card-text">Sopla rápido y fuerte. Como si apagaras muchas velas.</div>
+          <div class="tutorial-card-icon">💨🕯️</div>
+        </div>
+      </div>
+      <div class="tutorial-card">
+        <div class="tutorial-step-num" id="tut-num-3">3</div>
+        <div class="tutorial-card-body">
+          <div class="tutorial-card-title">Soplido largo</div>
+          <div class="tutorial-card-text">Sigue, sigue, sigue. Hasta que llegues a la meta.</div>
+          <div class="tutorial-card-icon">📊→🏆</div>
+        </div>
+      </div>
+    </div>
+    <div class="tutorial-footer">
+      <button class="btn-primary" id="btn-tutorial" onclick="goTo('screen-threeblows')">Practicar 💪</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 9: THREE BLOWS EXPLANATION
+  ============================================================ -->
+  <div class="screen" id="screen-threeblows">
+    <div class="threeblows-content">
+      <div style="font-size:52px;">🌟</div>
+      <div class="threeblows-title">Necesitamos<br>3 súper soplos</div>
+      <div class="threeblows-sub">
+        Tus soplos deben parecerse<br>como gemelos.<br>
+        Si uno sale muy diferente,<br>hacemos otro.
+      </div>
+      <div class="three-medals">
+        <div class="medal-empty">⭐</div>
+        <div class="medal-empty">⭐</div>
+        <div class="medal-empty">⭐</div>
+      </div>
+      <div style="font-size:14px;font-weight:700;color:var(--text2);line-height:1.6;text-align:center;background:white;border-radius:16px;padding:14px 20px;box-shadow:var(--shadow-card);">
+        Cada estrella es un súper soplo logrado. ¡Vamos por las tres!
+      </div>
+    </div>
+    <div class="threeblows-footer">
+      <button class="btn-primary" id="btn-threeblows" onclick="startGame()">Entendido 🚀</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 10: GAME - INHALE PHASE
+  ============================================================ -->
+  <div class="screen" id="screen-inhale">
+    <div class="game-header">
+      <div class="game-header-left">
+        <div class="game-header-title">Súper soplos</div>
+        <div class="game-header-count" id="inhale-counter">0/3 ⭐</div>
+      </div>
+      <div class="attempt-badge" id="inhale-attempt">Intento 1</div>
+      <button class="btn-pause" onclick="goToPause()">⏸ Pausar</button>
+    </div>
+    <div class="game-content">
+      <div class="phase-indicator">
+        <div class="phase-dot active" id="ph1-1"></div>
+        <div class="phase-dot" id="ph1-2"></div>
+        <div class="phase-dot" id="ph1-3"></div>
+      </div>
+      <div class="game-phase-title" id="inhale-title">Toma aire 🌬️</div>
+      <div class="game-phase-sub">Llena tu barriga de aire</div>
+      <div class="phase-timer-wrap">
+        <div class="phase-timer-num" id="inhale-timer">3</div>
+        <div class="phase-timer-label">segundos</div>
+        <div class="phase-timer-bar">
+          <div class="phase-timer-bar-fill" id="inhale-timer-bar" style="width:100%;"></div>
+        </div>
+      </div>
+      <div class="game-main-visual">
+        <svg class="circular-progress" viewBox="0 0 200 200">
+          <circle class="circ-bg" cx="100" cy="100" r="90"/>
+          <circle class="circ-fill" id="circ-fill-boy" cx="100" cy="100" r="90"/>
+        </svg>
+        <div class="balloon" id="inhale-balloon" style="position:relative;z-index:2;">🎈</div>
+      </div>
+      <div id="inhale-char-text" style="font-size:15px;font-weight:800;color:var(--accent);">Turbo carga energía... ⚡</div>
+    </div>
+    <div class="game-footer">
+      <button class="btn-primary" id="btn-inhale" onclick="goToBlowFast()">Ya tomé aire 💪</button>
+    </div>
+    <button class="fab-panel" onclick="goTo('screen-panel')" title="Panel adulto">👁</button>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 11: GAME - BLOW FAST PHASE
+  ============================================================ -->
+  <div class="screen" id="screen-blow-fast">
+    <div class="game-header">
+      <div class="game-header-left">
+        <div class="game-header-title">Súper soplos</div>
+        <div class="game-header-count" id="blowfast-counter">0/3 ⭐</div>
+      </div>
+      <div class="attempt-badge" id="blowfast-attempt">Intento 1</div>
+      <button class="btn-pause" onclick="goToPause()">⏸ Pausar</button>
+    </div>
+    <div class="game-content">
+      <div class="phase-indicator">
+        <div class="phase-dot done" id="ph2-1"></div>
+        <div class="phase-dot active" id="ph2-2"></div>
+        <div class="phase-dot" id="ph2-3"></div>
+      </div>
+      <div class="game-phase-title" id="blowfast-title">¡Sopla fuerte! 💨</div>
+      <div class="game-phase-sub">Rápido, rápido, rápido</div>
+      <div class="phase-timer-wrap">
+        <div class="phase-timer-num" id="blowfast-timer">2</div>
+        <div class="phase-timer-label">segundos</div>
+        <div class="phase-timer-bar">
+          <div class="phase-timer-bar-fill" id="blowfast-timer-bar" style="width:100%;"></div>
+        </div>
+      </div>
+      <div style="width:100%;">
+        <div class="breath-bar-wrap" style="margin:10px 0;">
+          <div class="breath-bar-fill" id="bar-fast" style="width:0%;"></div>
+        </div>
+        <div class="blow-scene" style="margin:12px 0;">
+          <div class="wind-lines" id="wind-lines-fast">
+            <div class="wind-line"></div>
+            <div class="wind-line"></div>
+            <div class="wind-line"></div>
+            <div class="wind-line"></div>
+            <div class="wind-line"></div>
+          </div>
+        </div>
+      </div>
+      <div class="motive-text" id="blowfast-motive">¡Vamos!</div>
+      <div id="blowfast-char" style="font-size:48px;" class="turbo-car">🏎️</div>
+    </div>
+    <div class="game-footer">
+      <button class="btn-primary" id="btn-blowfast" onclick="goToBlowLong()">Seguir soplando →</button>
+      <button class="btn-pause" onclick="goTo('screen-panel')" style="align-self:center;">👁 Marcar avance</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 12: GAME - LONG BLOW PHASE
+  ============================================================ -->
+  <div class="screen" id="screen-blow-long">
+    <div class="game-header">
+      <div class="game-header-left">
+        <div class="game-header-title">Súper soplos</div>
+        <div class="game-header-count" id="blowlong-counter">0/3 ⭐</div>
+      </div>
+      <div class="attempt-badge" id="blowlong-attempt">Intento 1</div>
+      <button class="btn-pause" onclick="goToPause()">⏸ Pausar</button>
+    </div>
+    <div class="game-content">
+      <div class="phase-indicator">
+        <div class="phase-dot done"></div>
+        <div class="phase-dot done"></div>
+        <div class="phase-dot active" id="ph3-3"></div>
+      </div>
+      <div class="game-phase-title" id="blowlong-title">Sigue soplando 🌬️</div>
+      <div class="game-phase-sub">Un poquito más</div>
+      <div class="phase-timer-wrap">
+        <div class="phase-timer-num" id="blowlong-timer">3</div>
+        <div class="phase-timer-label">segundos</div>
+        <div class="phase-timer-bar">
+          <div class="phase-timer-bar-fill" id="blowlong-timer-bar" style="width:100%;"></div>
+        </div>
+      </div>
+      <div style="width:100%;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:22px;">💨</span>
+          <div style="flex:1;">
+            <div class="breath-bar-wrap">
+              <div class="breath-bar-fill" id="bar-long" style="width:65%;"></div>
+            </div>
+          </div>
+          <span style="font-size:22px;">🏁</span>
+        </div>
+        <div style="text-align:right;font-size:12px;font-weight:700;color:var(--text2);">¡Ya casi!</div>
+      </div>
+      <div class="motive-text" id="blowlong-motive">¡Muy bien! ¡Sigue!</div>
+      <div id="blowlong-char" style="font-size:48px;animation:float 1.5s ease-in-out infinite;">🏎️</div>
+    </div>
+    <div class="game-footer">
+      <button class="btn-primary green-btn" id="btn-blowlong" onclick="goToValidation()">Revisar intento ✅</button>
+    </div>
+    <button class="fab-panel" onclick="goTo('screen-panel')" title="Panel adulto">👁</button>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 13: VALIDATION
+  ============================================================ -->
+  <div class="screen" id="screen-validation">
+    <div class="section-header">
+      <div class="section-header-title">¿Cómo salió el soplo?</div>
+      <button class="btn-pause" onclick="goTo('screen-panel')">👁 Panel</button>
+    </div>
+    <div class="validation-content">
+      <div class="validation-nice">
+        <div class="v-icon">😊</div>
+        <div class="v-text">Lo estás haciendo muy bien.</div>
+      </div>
+      <div class="validation-tag">Para el terapeuta o adulto</div>
+      <button class="btn-primary green-btn" onclick="markSuccess()" style="font-size:16px;">⭐ Súper soplo logrado</button>
+      <div style="text-align:center;font-size:13px;font-weight:700;color:var(--text2);padding:4px 0;">— o —</div>
+      <div class="card" style="padding:16px;">
+        <div style="font-size:13px;font-weight:800;color:var(--text2);margin-bottom:10px;">Intentar otra vez porque...</div>
+        <div class="reason-grid" id="reason-grid">
+          <div class="reason-btn" onclick="selectReason(this)">Tosió</div>
+          <div class="reason-btn" onclick="selectReason(this)">Se detuvo rápido</div>
+          <div class="reason-btn" onclick="selectReason(this)">Aire por la nariz</div>
+          <div class="reason-btn" onclick="selectReason(this)">No selló la boca</div>
+          <div class="reason-btn" onclick="selectReason(this)">Tapó con la lengua</div>
+          <div class="reason-btn" onclick="selectReason(this)">Otro</div>
+        </div>
+        <button class="btn-primary coral-btn" style="margin-top:12px;font-size:15px;" onclick="goTryAgain()">Vamos otra vez 🔄</button>
+      </div>
+    </div>
+    <div class="validation-footer">
+      <p class="note-adult">Esta pantalla es para el terapeuta o adulto supervisor.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 14: ATTEMPT SUCCESS
+  ============================================================ -->
+  <div class="screen" id="screen-success">
+    <div class="success-screen" style="flex:1;display:flex;flex-direction:column;">
+      <div class="success-content">
+        <div class="success-big-icon" id="success-icon">⭐</div>
+        <div class="success-title">¡Súper soplo! 🎉</div>
+        <div class="success-sub">Tu soplo ayudó mucho.</div>
+        <div class="success-progress">
+          <div class="progress-label">Tu misión</div>
+          <div class="attempt-tracker" id="success-tracker">
+            <div class="attempt-circle" id="suc-c1">⭐</div>
+            <div class="attempt-circle" id="suc-c2">⭐</div>
+            <div class="attempt-circle" id="suc-c3">⭐</div>
+          </div>
+          <div style="margin-top:12px;font-size:14px;font-weight:700;color:var(--text2);" id="success-progress-text">Soplo 1 de 3 logrado</div>
+        </div>
+        <div id="success-scene" style="font-size:50px;animation:bounce 0.8s ease;">🏎️⭐</div>
+      </div>
+      <div class="success-footer">
+        <button class="btn-primary" id="btn-success" onclick="nextAttempt()">Siguiente soplo 💪</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 15: TRY AGAIN
+  ============================================================ -->
+  <div class="screen" id="screen-tryagain">
+    <div class="tryagain-content">
+      <div class="tryagain-illustration" id="tryagain-char">🏎️</div>
+      <div class="tryagain-title">Vamos otra vez</div>
+      <div class="tryagain-sub">
+        Casi lo logras.<br>
+        Esta vez sopla fuerte<br>desde el inicio. 💪
+      </div>
+      <div style="background:white;border-radius:20px;padding:16px 20px;box-shadow:var(--shadow-card);width:100%;text-align:center;">
+        <div style="font-size:28px;">🌟</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text2);margin-top:6px;">¡Tú puedes! Inténtalo de nuevo.</div>
+      </div>
+    </div>
+    <div class="tryagain-footer">
+      <button class="btn-primary" id="btn-tryagain" onclick="goToInhale()">Reintentar 🚀</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 16: MISSION PROGRESS
+  ============================================================ -->
+  <div class="screen" id="screen-progress">
+    <div class="missionprog-content">
+      <div style="font-size:52px;">🎯</div>
+      <div class="missionprog-title">Tu misión</div>
+      <div class="missionprog-sub">Necesitamos 3 súper soplos.</div>
+      <div class="missionprog-card">
+        <div style="text-align:center;margin-bottom:16px;font-size:15px;font-weight:700;color:var(--text2);">Progreso actual</div>
+        <div class="attempt-tracker" id="prog-tracker">
+          <div class="attempt-circle" id="prog-c1">⭐</div>
+          <div class="attempt-circle" id="prog-c2">⭐</div>
+          <div class="attempt-circle" id="prog-c3">⭐</div>
+        </div>
+        <div style="margin-top:16px;text-align:center;font-size:16px;font-weight:800;color:var(--text);" id="prog-text">1 de 3 soplos logrados</div>
+      </div>
+    </div>
+    <div class="missionprog-footer">
+      <button class="btn-primary" id="btn-progress" onclick="continueFromProgress()">Seguir 💪</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 17A: VICTORY BOY
+  ============================================================ -->
+  <div class="screen" id="screen-victory-boy">
+    <div class="victory-screen" style="flex:1;display:flex;flex-direction:column;">
+      <!-- Confetti -->
+      <div class="confetti-piece" style="left:10%;animation-delay:0s;animation-duration:3s;">🎉</div>
+      <div class="confetti-piece" style="left:30%;animation-delay:0.5s;animation-duration:2.5s;">⭐</div>
+      <div class="confetti-piece" style="left:50%;animation-delay:0.2s;animation-duration:3.5s;">🎊</div>
+      <div class="confetti-piece" style="left:70%;animation-delay:0.8s;animation-duration:2.8s;">🌟</div>
+      <div class="confetti-piece" style="left:85%;animation-delay:0.3s;animation-duration:3.2s;">🎈</div>
+      <div class="victory-content">
+        <div class="victory-trophy">🏆</div>
+        <div class="victory-title">¡Ganaste<br>la carrera!</div>
+        <div class="victory-sub">Lo hiciste súper bien.<br>Turbo llegó a la meta gracias<br>a tus súper soplos. 🏁</div>
+        <div class="victory-scene">
+          <svg viewBox="0 0 360 130" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            <rect width="360" height="130" fill="#c8f0e0" rx="20"/>
+            <!-- Road -->
+            <rect x="0" y="80" width="360" height="50" fill="#8fa8b0" rx="0"/>
+            <!-- Finish line -->
+            <line x1="290" y1="75" x2="290" y2="130" stroke="#263238" stroke-width="3"/>
+            <rect x="285" y="50" width="50" height="30" rx="4" fill="white"/>
+            <rect x="285" y="50" width="25" height="15" fill="#263238"/>
+            <rect x="310" y="65" width="25" height="15" fill="#263238"/>
+            <text x="288" y="90" font-size="10" font-weight="900" fill="white" font-family="Nunito">META</text>
+            <!-- Turbo on podium -->
+            <g transform="translate(180,25)">
+              <rect x="0" y="20" width="90" height="32" rx="12" fill="#4DA3FF"/>
+              <rect x="12" y="8" width="60" height="22" rx="10" fill="#7ec8ff"/>
+              <rect x="18" y="10" width="40" height="16" rx="6" fill="#c8e8ff" opacity="0.8"/>
+              <circle cx="18" cy="52" r="12" fill="#263238"/>
+              <circle cx="72" cy="52" r="12" fill="#263238"/>
+              <text x="35" y="34" font-size="12" font-weight="900" fill="white" font-family="Nunito">1</text>
+              <text x="60" y="20" font-size="18">⭐</text>
+            </g>
+            <!-- Stars -->
+            <text x="20" y="40" font-size="20">⭐</text>
+            <text x="50" y="65" font-size="16">🌟</text>
+            <text x="140" y="55" font-size="14">✨</text>
+          </svg>
+        </div>
+        <div class="progress-stars">
+          <div class="star lit">⭐</div>
+          <div class="star lit">⭐</div>
+          <div class="star lit">⭐</div>
+        </div>
+        <p style="font-size:12px;color:var(--text2);text-align:center;line-height:1.5;">Las terapeutas revisarán cómo trabajaron tus pulmones.</p>
+      </div>
+      <div class="victory-footer">
+        <button class="btn-primary" onclick="resetGame()">Jugar otra vez 🔄</button>
+        <button class="btn-secondary" onclick="goTo('screen-end')">Terminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 17B: VICTORY GIRL
+  ============================================================ -->
+  <div class="screen" id="screen-victory-girl">
+    <div class="victory-screen" style="flex:1;display:flex;flex-direction:column;background:linear-gradient(160deg,#e8d8ff 0%,#fff0f8 60%,#fff8e1 100%);">
+      <div class="confetti-piece" style="left:10%;animation-delay:0s;">✨</div>
+      <div class="confetti-piece" style="left:30%;animation-delay:0.5s;">⭐</div>
+      <div class="confetti-piece" style="left:55%;animation-delay:0.2s;">💫</div>
+      <div class="confetti-piece" style="left:75%;animation-delay:0.8s;">🌟</div>
+      <div class="confetti-piece" style="left:88%;animation-delay:0.3s;">✨</div>
+      <div class="victory-content">
+        <div class="victory-trophy">👑</div>
+        <div class="victory-title">¡Castillo<br>terminado!</div>
+        <div class="victory-sub">Lo hiciste súper bien.<br>Lía terminó el castillo gracias<br>a tus súper soplos. ✨</div>
+        <div class="victory-scene" style="border-radius:20px;overflow:hidden;">
+          <svg viewBox="0 0 360 130" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            <rect width="360" height="130" fill="#e8d0ff" rx="20"/>
+            <!-- Stars bg -->
+            <text x="10" y="30" font-size="14" opacity="0.7">✨</text>
+            <text x="300" y="25" font-size="16" opacity="0.8">⭐</text>
+            <text x="170" y="20" font-size="12" opacity="0.6">💫</text>
+            <!-- Castle complete -->
+            <g transform="translate(90,10)">
+              <rect x="45" y="60" width="90" height="65" rx="4" fill="#d4bfff"/>
+              <rect x="20" y="70" width="30" height="55" rx="3" fill="#c4aaff"/>
+              <rect x="135" y="70" width="30" height="55" rx="3" fill="#c4aaff"/>
+              <!-- Battlements -->
+              <rect x="43" y="50" width="10" height="14" rx="3" fill="#b899ff"/>
+              <rect x="57" y="50" width="10" height="14" rx="3" fill="#b899ff"/>
+              <rect x="71" y="50" width="10" height="14" rx="3" fill="#b899ff"/>
+              <rect x="85" y="50" width="10" height="14" rx="3" fill="#b899ff"/>
+              <rect x="99" y="50" width="10" height="14" rx="3" fill="#b899ff"/>
+              <rect x="113" y="50" width="10" height="14" rx="3" fill="#b899ff"/>
+              <!-- Door -->
+              <rect x="73" y="95" width="24" height="30" rx="12" fill="#9b7eff"/>
+              <!-- Roofs -->
+              <polygon points="90,25 75,58 105,58" fill="#9b7eff"/>
+              <polygon points="35,35 23,68 47,68" fill="#9b7eff"/>
+              <polygon points="150,35 138,68 162,68" fill="#9b7eff"/>
+              <!-- Stars on castle -->
+              <text x="152" y="40" font-size="14">✨</text>
+              <text x="10" y="45" font-size="12">⭐</text>
+            </g>
+          </svg>
+        </div>
+        <div class="progress-stars">
+          <div class="star lit">⭐</div>
+          <div class="star lit">⭐</div>
+          <div class="star lit">⭐</div>
+        </div>
+        <p style="font-size:12px;color:var(--text2);text-align:center;line-height:1.5;">Las terapeutas revisarán cómo trabajaron tus pulmones.</p>
+      </div>
+      <div class="victory-footer">
+        <button class="btn-primary lilac-btn" onclick="resetGame()">Jugar otra vez 🔄</button>
+        <button class="btn-secondary" style="border-color:var(--accent2);color:var(--accent2);" onclick="goTo('screen-end')">Terminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 18: ADULT PANEL
+  ============================================================ -->
+  <div class="screen" id="screen-panel">
+    <div class="panel-header">
+      <button onclick="goBack()" style="background:rgba(255,255,255,0.1);border:none;color:white;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;">←</button>
+      <div class="panel-header-title">Panel de supervisión</div>
+      <div class="panel-tag">👩‍⚕️ Adulto</div>
+    </div>
+    <div class="panel-content">
+      <div class="panel-section-title">Estado actual</div>
+      <div class="panel-stat-row">
+        <div class="panel-stat">
+          <div class="panel-stat-val" id="panel-age">5</div>
+          <div class="panel-stat-label">Edad</div>
+        </div>
+        <div class="panel-stat">
+          <div class="panel-stat-val" id="panel-profile">Niño</div>
+          <div class="panel-stat-label">Ruta</div>
+        </div>
+        <div class="panel-stat">
+          <div class="panel-stat-val" id="panel-success">0/3</div>
+          <div class="panel-stat-label">Logrados</div>
+        </div>
+      </div>
+      <div class="panel-section-title">Fase actual</div>
+      <div style="background:white;border-radius:16px;padding:14px 16px;box-shadow:var(--shadow-card);">
+        <div style="font-size:15px;font-weight:800;color:var(--accent);" id="panel-phase">🌬️ Tomar aire</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-top:4px;">Intento actual: <span id="panel-attempt">1</span></div>
+      </div>
+      <div class="panel-section-title">Tiempos configurados</div>
+      <div style="background:white;border-radius:16px;padding:14px 16px;box-shadow:var(--shadow-card);">
+        <div style="font-size:13px;font-weight:700;color:var(--text);" id="panel-timings">—</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:4px;">Según guías ERS/ATS pediátricas (valores orientativos)</div>
+      </div>
+      <div class="panel-section-title">Acciones</div>
+      <div class="panel-actions">
+        <button class="panel-btn success" onclick="markSuccess()">⭐ Marcar intento logrado</button>
+        <button class="panel-btn retry" onclick="goTryAgain()">🔄 Intentar otra vez</button>
+        <button class="panel-btn pause" onclick="goToPause()">⏸ Pausar</button>
+        <button class="panel-btn danger" onclick="goTo('screen-end')">⏹ Finalizar sesión</button>
+      </div>
+      <div class="panel-section-title">Motivo de repetición</div>
+      <div class="panel-reasons">
+        <div class="panel-reason" onclick="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'">Tosió</div>
+        <div class="panel-reason" onclick="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'">Se detuvo</div>
+        <div class="panel-reason" onclick="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'">Nariz</div>
+        <div class="panel-reason" onclick="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'">No selló boca</div>
+        <div class="panel-reason" onclick="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'">Con lengua</div>
+        <div class="panel-reason" onclick="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'">Otro</div>
+      </div>
+    </div>
+    <div class="panel-footer">
+      <p class="panel-note">No se guardan datos personales en esta versión.<br>Esta app es una guía visual y no reemplaza la indicación del profesional de salud.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 19: PAUSE
+  ============================================================ -->
+  <div class="screen" id="screen-pause">
+    <div class="pause-content">
+      <div class="pause-icon">😌</div>
+      <div class="pause-title">Pausa ☁️</div>
+      <div class="pause-sub">
+        Respira tranquilo.<br>
+        Cuando estés listo,<br>seguimos.
+      </div>
+      <div style="background:white;border-radius:20px;padding:16px 24px;box-shadow:var(--shadow-card);text-align:center;width:100%;">
+        <div style="font-size:13px;font-weight:700;color:var(--text2);line-height:1.6;">
+          Lo estás haciendo muy bien. 🌟<br>
+          Tómate tu tiempo.
+        </div>
+      </div>
+    </div>
+    <div class="pause-footer">
+      <button class="btn-primary" onclick="resumeGame()">Continuar 💪</button>
+      <button class="btn-secondary" onclick="goTo('screen-splash')">Volver al inicio</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 20: END SESSION
+  ============================================================ -->
+  <div class="screen" id="screen-end">
+    <div class="end-content">
+      <div class="end-icon">🌟</div>
+      <div class="end-title">Sesión terminada</div>
+      <div class="end-sub">
+        Gracias por jugar.<br>
+        Lo hiciste muy bien. 🎉
+      </div>
+      <div style="background:white;border-radius:20px;padding:20px;box-shadow:var(--shadow-card);width:100%;text-align:center;">
+        <div class="attempt-tracker" id="end-tracker">
+          <div class="attempt-circle" id="end-c1">⭐</div>
+          <div class="attempt-circle" id="end-c2">⭐</div>
+          <div class="attempt-circle" id="end-c3">⭐</div>
+        </div>
+        <div style="margin-top:12px;font-size:14px;font-weight:700;color:var(--text2);" id="end-result-text">Sesión completada</div>
+      </div>
+      <div style="background:#f0eaff;border-radius:16px;padding:14px 20px;width:100%;">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);text-align:center;line-height:1.6;">
+          🔒 No se guardaron datos personales.
+        </div>
+      </div>
+    </div>
+    <div class="end-footer">
+      <button class="btn-primary" onclick="resetGame()">Volver al inicio 🏠</button>
+      <button class="btn-secondary" onclick="resetGame()">Jugar otra vez 🔄</button>
+    </div>
+  </div>
+
+  <button class="fab-audio" id="fab-audio" onclick="toggleVoice()" title="Activar/silenciar voz" aria-label="Activar o silenciar voz">🔊</button>
+
+</div><!-- end device-shell -->
+
+<!-- DEMO NAVIGATION -->
+<div class="demo-nav" id="demo-nav">
+  <span class="demo-nav-label">Pantallas:</span>
+  <button class="demo-nav-btn" onclick="goTo('screen-splash')">1 Inicio</button>
+  <button class="demo-nav-btn" onclick="goTo('screen-profile')">5 Perfil</button>
+  <button class="demo-nav-btn" onclick="showIntroDemo()">7 Aventura</button>
+  <button class="demo-nav-btn" onclick="goToInhaleDemo()">10 Juego</button>
+  <button class="demo-nav-btn" onclick="goTo('screen-validation')">13 Validar</button>
+  <button class="demo-nav-btn" onclick="showVictoryDemo()">17 Victoria</button>
+  <button class="demo-nav-btn" onclick="goTo('screen-panel')">18 Panel</button>
+</div>
+
+<script>
+// ==============================
+// SISTEMA DE VOZ (Web Speech API)
+// ==============================
+let voiceEnabled = true;
+let currentUtterance = null;
+let availableVoices = [];
+
+const VOICE_SCRIPTS = {
+  'screen-welcome': '¡Hola! Hoy vamos a jugar con tu respiración. Tus pulmones son como globitos que se inflan y se desinflan.',
+  'screen-instructions': 'Antes de empezar, recuerda: usa ropa cómoda, no comas mucho antes del juego, y sigue las indicaciones de tu médico.',
+  'screen-supervision': 'Aviso para el adulto: esta aplicación es una guía visual y no reemplaza la indicación del profesional de salud.',
+  'screen-profile': '¿Quién va a jugar hoy? Elige tu personaje.',
+  'screen-age': '¿Cuántos años tienes? Toca tu edad.',
+  'screen-intro-boy': '¡Hola! Soy Turbo. Juntos vamos a ganar la carrera. Para avanzar, necesitamos hacer tres súper soplos.',
+  'screen-intro-girl': '¡Hola! Soy Lía. Juntas vamos a construir el castillo mágico. Para eso, necesitamos hacer tres súper soplos.',
+  'screen-tutorial': 'Así se juega. Primero, toma todo el aire que puedas. Después, sopla rápido y fuerte. Y luego sigue soplando hasta llegar a la meta.',
+  'screen-threeblows': 'Necesitamos tres súper soplos. Cada soplo debe parecerse al anterior. Si sale muy diferente, lo intentamos de nuevo. ¡Vamos por las tres estrellas!',
+  'screen-inhale': 'Ahora, toma todo el aire que puedas. Llena tu barriga. ¡Como si inflaras un globo gigante!',
+  'screen-blow-fast': '¡Ahora sopla fuerte y rápido! ¡Vamos, vamos, vamos!',
+  'screen-blow-long': '¡Sigue soplando! Un poquito más. ¡Ya casi llegas!',
+  'screen-success': '¡Súper soplo logrado! Lo estás haciendo muy bien.',
+  'screen-tryagain': 'Vamos otra vez. Esta vez sopla fuerte desde el inicio. ¡Tú puedes!',
+  'screen-progress': 'Muy bien. Mira tu progreso. Seguimos con el siguiente soplo.',
+  'screen-victory-boy': '¡Felicitaciones! ¡Ganaste la carrera! Turbo llegó a la meta gracias a tus súper soplos. ¡Lo hiciste increíble!',
+  'screen-victory-girl': '¡Felicitaciones! ¡El castillo está terminado! Lía lo construyó gracias a tus súper soplos. ¡Lo hiciste increíble!',
+  'screen-pause': 'Pausa. Respira tranquilo. Cuando estés listo, seguimos.',
+  'screen-end': 'Sesión terminada. Gracias por jugar. Lo hiciste muy bien.',
+};
+
+const NO_VOICE_SCREENS = ['screen-validation', 'screen-panel'];
+
+function loadVoices() {
+  if (!window.speechSynthesis) return [];
+  availableVoices = window.speechSynthesis.getVoices();
+  return availableVoices;
+}
+
+if (window.speechSynthesis) {
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+function cancelSpeech() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  currentUtterance = null;
+}
+
+function selectSpanishVoice() {
+  const voices = availableVoices.length ? availableVoices : loadVoices();
+  return voices.find(v => v.lang.toLowerCase().startsWith('es-es') && v.localService)
+    || voices.find(v => v.lang.toLowerCase().startsWith('es-es'))
+    || voices.find(v => v.lang.toLowerCase().startsWith('es') && v.localService)
+    || voices.find(v => v.lang.toLowerCase().startsWith('es'));
+}
+
+function speak(text) {
+  if (!voiceEnabled) return;
+  if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+  cancelSpeech();
+
+  const utter = new SpeechSynthesisUtterance(text);
+  const spanishVoice = selectSpanishVoice();
+  utter.lang = spanishVoice ? spanishVoice.lang : 'es-ES';
+  utter.rate = 0.85;
+  utter.pitch = 1.1;
+  utter.volume = 1;
+  if (spanishVoice) utter.voice = spanishVoice;
+
+  currentUtterance = utter;
+  window.speechSynthesis.speak(utter);
+}
+
+function speakForScreen(screenId) {
+  if (NO_VOICE_SCREENS.includes(screenId)) {
+    cancelSpeech();
+    return;
+  }
+  const text = VOICE_SCRIPTS[screenId];
+  if (!text) {
+    cancelSpeech();
+    return;
+  }
+  speak(text);
+}
+
+function toggleVoice() {
+  voiceEnabled = !voiceEnabled;
+  const btn = document.getElementById('fab-audio');
+  if (btn) btn.textContent = voiceEnabled ? '🔊' : '🔇';
+  if (!voiceEnabled) cancelSpeech();
+  else speakForScreen(state.currentScreen);
+}
+
+function updateVoiceScripts() {
+  if (state.profile === 'girl') {
+    VOICE_SCRIPTS['screen-inhale'] = 'Ahora, toma todo el aire que puedas. Llena tu barriga. ¡Como si inflaras un globo mágico!';
+    VOICE_SCRIPTS['screen-blow-fast'] = '¡Ahora sopla fuerte y rápido! ¡Haz brillar la magia!';
+    VOICE_SCRIPTS['screen-blow-long'] = '¡Sigue soplando! El castillo está casi listo. ¡Ya casi!';
+    VOICE_SCRIPTS['screen-success'] = '¡Súper soplo mágico logrado! Lo estás haciendo increíble.';
+  } else {
+    VOICE_SCRIPTS['screen-inhale'] = 'Ahora, toma todo el aire que puedas. Llena tu barriga. ¡Como si inflaras un globo gigante!';
+    VOICE_SCRIPTS['screen-blow-fast'] = '¡Ahora sopla fuerte y rápido! ¡Vamos, vamos, vamos!';
+    VOICE_SCRIPTS['screen-blow-long'] = '¡Sigue soplando! Turbo está casi en la meta. ¡Ya casi!';
+    VOICE_SCRIPTS['screen-success'] = '¡Súper soplo logrado! Lo estás haciendo muy bien.';
+  }
+}
+
+// ==============================
+// STATE
+// ==============================
+let state = {
+  profile: null,    // 'boy' | 'girl'
+  age: null,
+  attempts: 0,      // successful attempts (0-3)
+  currentAttempt: 1,
+  currentScreen: 'screen-splash',
+  previousScreen: 'screen-splash',
+  phase: 'inhale',  // 'inhale' | 'blow-fast' | 'blow-long'
+};
+
+// ==============================
+// CONFIGURACIÓN POR EDAD (ERS/ATS 2007)
+// ==============================
+const AGE_CONFIG = {
+  4:  { inhale: 3, blowFast: 2, blowLong: 3 },
+  5:  { inhale: 3, blowFast: 2, blowLong: 4 },
+  6:  { inhale: 4, blowFast: 2, blowLong: 5 },
+  7:  { inhale: 4, blowFast: 3, blowLong: 6 },
+  8:  { inhale: 4, blowFast: 3, blowLong: 6 },
+  9:  { inhale: 5, blowFast: 3, blowLong: 7 },
+  10: { inhale: 5, blowFast: 3, blowLong: 8 },
+};
+
+function getAgeConfig() {
+  return AGE_CONFIG[state.age] || AGE_CONFIG[6];
+}
+
+let phaseCountdown = null;
+let phaseStartDelay = null;
+
+function clearPhaseCountdown() {
+  if (phaseCountdown) {
+    clearInterval(phaseCountdown);
+    phaseCountdown = null;
+  }
+  if (phaseStartDelay) {
+    clearTimeout(phaseStartDelay);
+    phaseStartDelay = null;
+  }
+}
+
+function schedulePhaseStart(callback, delay = 500) {
+  if (phaseStartDelay) clearTimeout(phaseStartDelay);
+  phaseStartDelay = setTimeout(() => {
+    phaseStartDelay = null;
+    callback();
+  }, delay);
+}
+
+function startPhaseCountdown(seconds, timerId, timerBarId, onComplete) {
+  clearPhaseCountdown();
+  let remaining = seconds;
+  const timerEl = document.getElementById(timerId);
+  const timerBarEl = document.getElementById(timerBarId);
+  const isGirl = state.profile === 'girl';
+
+  function updateDisplay() {
+    if (timerEl) {
+      timerEl.textContent = remaining;
+      if (isGirl) timerEl.classList.add('lilac');
+      else timerEl.classList.remove('lilac');
+    }
+    if (timerBarEl) {
+      timerBarEl.style.width = (remaining / seconds * 100) + '%';
+      if (isGirl) timerBarEl.classList.add('lilac');
+      else timerBarEl.classList.remove('lilac');
+    }
+  }
+
+  updateDisplay();
+  phaseCountdown = setInterval(() => {
+    remaining--;
+    updateDisplay();
+    if (remaining <= 0) {
+      clearPhaseCountdown();
+      onComplete();
+    }
+  }, 1000);
+}
+
+// ==============================
+// NAVIGATION
+// ==============================
+function goTo(screenId) {
+  const gameScreens = ['screen-inhale', 'screen-blow-fast', 'screen-blow-long'];
+  if (!gameScreens.includes(screenId)) {
+    clearPhaseCountdown();
+    if (motiveInterval) clearInterval(motiveInterval);
+  }
+  const current = document.querySelector('.screen.active');
+  if (current) current.classList.remove('active');
+  const next = document.getElementById(screenId);
+  if (next) {
+    next.classList.add('active');
+    state.previousScreen = state.currentScreen;
+    state.currentScreen = screenId;
+  }
+  updatePanelInfo();
+  speakForScreen(screenId);
+}
+
+function goBack() {
+  goTo(state.previousScreen);
+}
+
+function goToIntro() {
+  if (state.profile === 'girl') goTo('screen-intro-girl');
+  else goTo('screen-intro-boy');
+}
+
+// ==============================
+// PROFILE SELECTION
+// ==============================
+function selectProfile(profile) {
+  state.profile = profile;
+  document.getElementById('card-boy').classList.remove('selected');
+  document.getElementById('card-girl').classList.remove('selected');
+  document.getElementById('check-boy').style.display = 'none';
+  document.getElementById('check-girl').style.display = 'none';
+  document.getElementById('card-' + profile).classList.add('selected');
+  document.getElementById('check-' + profile).style.display = 'block';
+  const btn = document.getElementById('btn-profile-continue');
+  btn.style.opacity = '1';
+  btn.style.pointerEvents = 'auto';
+  // Apply lilac to girl mode
+  if (profile === 'girl') {
+    btn.classList.add('lilac-btn');
+    btn.classList.remove('');
+  } else {
+    btn.classList.remove('lilac-btn');
+  }
+  updateCharacters();
+}
+
+function continueFromProfile() {
+  if (!state.profile) return;
+  goTo('screen-age');
+}
+
+// ==============================
+// AGE SELECTION
+// ==============================
+function selectAge(age) {
+  state.age = age;
+  document.querySelectorAll('.age-btn').forEach(b => {
+    b.classList.remove('selected', 'girl-selected');
+  });
+  const btn = document.getElementById('age-' + age);
+  btn.classList.add('selected');
+  if (state.profile === 'girl') btn.classList.add('girl-selected');
+  const cont = document.getElementById('btn-age-continue');
+  cont.style.opacity = '1';
+  cont.style.pointerEvents = 'auto';
+}
+
+function continueFromAge() {
+  if (!state.age) return;
+  if (state.profile === 'girl') goTo('screen-intro-girl');
+  else goTo('screen-intro-boy');
+}
+
+// ==============================
+// CHARACTER / THEME UPDATE
+// ==============================
+function updateCharacters() {
+  updateVoiceScripts();
+  const isGirl = state.profile === 'girl';
+  // Tutorial nums
+  const nums = document.querySelectorAll('.tutorial-step-num');
+  nums.forEach(n => {
+    if (isGirl) n.classList.add('lilac');
+    else n.classList.remove('lilac');
+  });
+  // Tutorial btn
+  const tutBtn = document.getElementById('btn-tutorial');
+  if (tutBtn) {
+    if (isGirl) tutBtn.classList.add('lilac-btn');
+    else tutBtn.classList.remove('lilac-btn');
+  }
+  // Threeblows btn
+  const tbBtn = document.getElementById('btn-threeblows');
+  if (tbBtn) {
+    if (isGirl) tbBtn.classList.add('lilac-btn');
+    else tbBtn.classList.remove('lilac-btn');
+  }
+  // Inhale chars
+  const iChar = document.getElementById('inhale-char-text');
+  if (iChar) {
+    iChar.style.color = isGirl ? 'var(--accent2)' : 'var(--accent)';
+    iChar.textContent = isGirl ? 'Lía carga magia... ✨' : 'Turbo carga energía... ⚡';
+  }
+  const circFill = document.getElementById('circ-fill-boy');
+  if (circFill) {
+    if (isGirl) circFill.classList.add('lilac');
+    else circFill.classList.remove('lilac');
+  }
+  // Blow fast
+  const bfTitle = document.getElementById('blowfast-title');
+  if (bfTitle) bfTitle.style.color = isGirl ? 'var(--accent2)' : 'var(--text)';
+  const bfMotive = document.getElementById('blowfast-motive');
+  if (bfMotive) {
+    if (isGirl) bfMotive.classList.add('lilac');
+    else bfMotive.classList.remove('lilac');
+  }
+  const bfChar = document.getElementById('blowfast-char');
+  if (bfChar) bfChar.textContent = isGirl ? '🏰' : '🏎️';
+  const barFast = document.getElementById('bar-fast');
+  if (barFast) {
+    if (isGirl) barFast.classList.add('lilac-bar');
+    else barFast.classList.remove('lilac-bar');
+  }
+  const windLines = document.querySelectorAll('#wind-lines-fast .wind-line');
+  windLines.forEach(wl => {
+    if (isGirl) wl.classList.add('lilac');
+    else wl.classList.remove('lilac');
+  });
+  const blMotive = document.getElementById('blowlong-motive');
+  if (blMotive) {
+    if (isGirl) blMotive.classList.add('lilac');
+    else blMotive.classList.remove('lilac');
+  }
+  const blChar = document.getElementById('blowlong-char');
+  if (blChar) blChar.textContent = isGirl ? '🏰' : '🏎️';
+  const barLong = document.getElementById('bar-long');
+  if (barLong) {
+    if (isGirl) barLong.classList.add('lilac-bar');
+    else barLong.classList.remove('lilac-bar');
+  }
+  // Reason btns
+  document.querySelectorAll('.reason-btn').forEach(rb => {
+    if (isGirl) rb.classList.add('lilac');
+    else rb.classList.remove('lilac');
+  });
+  // Attempt circles
+  updateAttemptCircles();
+  updatePanelInfo();
+}
+
+// ==============================
+// GAME FLOW
+// ==============================
+function startGame() {
+  state.attempts = 0;
+  state.currentAttempt = 1;
+  updateAttemptCircles();
+  updateHeaders();
+  updateCharacters();
+  goToInhale();
+}
+
+function animateInhaleCircle(duration) {
+  const dur = duration || 3;
+  const circ = document.getElementById('circ-fill-boy');
+  if (!circ) return;
+  circ.style.strokeDashoffset = 565;
+  setTimeout(() => {
+    circ.style.transition = `stroke-dashoffset ${dur}s ease`;
+    circ.style.strokeDashoffset = 0;
+  }, 300);
+}
+
+function goToBlowFast() {
+  clearPhaseCountdown();
+  state.phase = 'blow-fast';
+  updateHeaders();
+  const config = getAgeConfig();
+  const bar = document.getElementById('bar-fast');
+  if (bar) {
+    bar.style.transition = 'none';
+    bar.style.width = '0%';
+    setTimeout(() => {
+      bar.style.transition = `width ${config.blowFast}s ease`;
+      bar.style.width = '100%';
+    }, 300);
+  }
+  cycleMotive('blowfast-motive', ['¡Vamos!', '¡Rápido!', '¡Sopla!', '¡Fuerte!']);
+  goTo('screen-blow-fast');
+  startPhaseCountdown(config.blowFast, 'blowfast-timer', 'blowfast-timer-bar', () => {
+    goToBlowLong();
+  });
+}
+
+function goToBlowLong() {
+  clearPhaseCountdown();
+  state.phase = 'blow-long';
+  updateHeaders();
+  const config = getAgeConfig();
+  const bar = document.getElementById('bar-long');
+  if (bar) {
+    bar.style.transition = 'none';
+    bar.style.width = '10%';
+    setTimeout(() => {
+      bar.style.transition = `width ${config.blowLong}s ease`;
+      bar.style.width = '95%';
+    }, 300);
+  }
+  cycleMotive('blowlong-motive', ['¡Muy bien!', '¡Sigue!', '¡Ya casi!', '¡Increíble!', '¡Sigue soplando!']);
+  goTo('screen-blow-long');
+  startPhaseCountdown(config.blowLong, 'blowlong-timer', 'blowlong-timer-bar', () => {
+    goToValidation();
+  });
+}
+
+function goToValidation() {
+  clearPhaseCountdown();
+  if (motiveInterval) clearInterval(motiveInterval);
+  goTo('screen-validation');
+}
+
+let motiveInterval = null;
+function cycleMotive(elId, messages) {
+  if (motiveInterval) clearInterval(motiveInterval);
+  let i = 0;
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.textContent = messages[0];
+  motiveInterval = setInterval(() => {
+    i = (i + 1) % messages.length;
+    el.textContent = messages[i];
+  }, 1200);
+}
+
+function markSuccess() {
+  clearPhaseCountdown();
+  if (motiveInterval) clearInterval(motiveInterval);
+  state.attempts++;
+  state.phase = 'inhale';
+  updateAttemptCircles();
+  updateHeaders();
+  updateSuccessScreen();
+  if (state.attempts >= 3) {
+    setTimeout(() => showVictory(), 100);
+  } else {
+    goTo('screen-success');
+  }
+}
+
+function updateSuccessScreen() {
+  const texts = ['Soplo 1 de 3 logrado', 'Soplo 2 de 3 logrado', 'Soplo 3 de 3 logrado'];
+  const el = document.getElementById('success-progress-text');
+  if (el) el.textContent = texts[Math.min(state.attempts - 1, 2)];
+  // Scene
+  const scene = document.getElementById('success-scene');
+  if (scene) scene.textContent = state.profile === 'girl' ? '🏰✨' : '🏎️⭐';
+  // Next btn
+  const btn = document.getElementById('btn-success');
+  if (btn) {
+    if (state.profile === 'girl') { btn.classList.add('lilac-btn'); }
+    else { btn.classList.remove('lilac-btn'); }
+  }
+}
+
+function nextAttempt() {
+  if (state.attempts >= 3) { showVictory(); return; }
+  state.currentAttempt = state.attempts + 1;
+  updateProgressScreen();
+  goTo('screen-progress');
+}
+
+function continueFromProgress() {
+  if (state.attempts >= 3) { showVictory(); return; }
+  state.currentAttempt = state.attempts + 1;
+  updateHeaders();
+  const barf = document.getElementById('bar-fast');
+  if (barf) { barf.style.transition = 'none'; barf.style.width = '0%'; }
+  const barl = document.getElementById('bar-long');
+  if (barl) { barl.style.transition = 'none'; barl.style.width = '10%'; }
+  const circ = document.getElementById('circ-fill-boy');
+  if (circ) { circ.style.transition = 'none'; circ.style.strokeDashoffset = 565; }
+  state.phase = 'inhale';
+  goToInhale();
+}
+
+function updateProgressScreen() {
+  const el = document.getElementById('prog-text');
+  if (el) el.textContent = `${state.attempts} de 3 soplos logrados`;
+  // Circles
+  for (let i = 1; i <= 3; i++) {
+    const c = document.getElementById('prog-c' + i);
+    if (!c) continue;
+    if (i <= state.attempts) {
+      c.classList.add('done');
+      if (state.profile === 'girl') c.classList.add('lilac');
+    } else {
+      c.classList.remove('done', 'lilac');
+    }
+    c.textContent = i <= state.attempts ? '⭐' : '⭐';
+  }
+  const btn = document.getElementById('btn-progress');
+  if (btn) {
+    if (state.profile === 'girl') btn.classList.add('lilac-btn');
+    else btn.classList.remove('lilac-btn');
+  }
+}
+
+function goTryAgain() {
+  clearPhaseCountdown();
+  if (motiveInterval) clearInterval(motiveInterval);
+  // Tryagain char
+  const tc = document.getElementById('tryagain-char');
+  if (tc) tc.textContent = state.profile === 'girl' ? '🏰' : '🏎️';
+  const btn = document.getElementById('btn-tryagain');
+  if (btn) {
+    if (state.profile === 'girl') btn.classList.add('lilac-btn');
+    else btn.classList.remove('lilac-btn');
+  }
+  goTo('screen-tryagain');
+}
+
+function goToInhale() {
+  clearPhaseCountdown();
+  state.phase = 'inhale';
+  const circ = document.getElementById('circ-fill-boy');
+  if (circ) { circ.style.transition = 'none'; circ.style.strokeDashoffset = 565; }
+  updateHeaders();
+  const config = getAgeConfig();
+  goTo('screen-inhale');
+  schedulePhaseStart(() => {
+    animateInhaleCircle(config.inhale);
+    startPhaseCountdown(config.inhale, 'inhale-timer', 'inhale-timer-bar', () => {
+      goToBlowFast();
+    });
+  }, 500);
+}
+
+function showVictory() {
+  updateEndTracker();
+  if (state.profile === 'girl') goTo('screen-victory-girl');
+  else goTo('screen-victory-boy');
+}
+
+function goToPause() {
+  clearPhaseCountdown();
+  if (motiveInterval) clearInterval(motiveInterval);
+  goTo('screen-pause');
+}
+
+function resumeGame() {
+  if (state.phase === 'inhale') goToInhale();
+  else if (state.phase === 'blow-fast') goToBlowFast();
+  else if (state.phase === 'blow-long') goToBlowLong();
+  else goToInhale();
+}
+
+// ==============================
+// REASON SELECTION (validation)
+// ==============================
+function selectReason(el) {
+  document.querySelectorAll('.reason-btn').forEach(r => r.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ==============================
+// UPDATE UI HELPERS
+// ==============================
+function updateHeaders() {
+  const countText = `${state.attempts}/3 ⭐`;
+  const attemptText = `Intento ${state.currentAttempt}`;
+  ['inhale', 'blowfast', 'blowlong'].forEach(prefix => {
+    const c = document.getElementById(prefix + '-counter');
+    if (c) c.textContent = countText;
+    const a = document.getElementById(prefix + '-attempt');
+    if (a) a.textContent = attemptText;
+  });
+}
+
+function updateAttemptCircles() {
+  // Success tracker
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById('suc-c' + i);
+    if (el) {
+      if (i <= state.attempts) {
+        el.classList.add('done');
+        if (state.profile === 'girl') el.classList.add('lilac');
+        else el.classList.remove('lilac');
+      } else {
+        el.classList.remove('done', 'lilac');
+      }
+    }
+  }
+  updateEndTracker();
+}
+
+function updateEndTracker() {
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById('end-c' + i);
+    if (el) {
+      if (i <= state.attempts) {
+        el.classList.add('done');
+        if (state.profile === 'girl') el.classList.add('lilac');
+      } else {
+        el.classList.remove('done','lilac');
+      }
+    }
+  }
+  const rt = document.getElementById('end-result-text');
+  if (rt) rt.textContent = state.attempts >= 3 ? '¡3 súper soplos logrados! 🌟' : `${state.attempts} de 3 soplos logrados`;
+}
+
+function updatePanelInfo() {
+  const pa = document.getElementById('panel-age');
+  if (pa) pa.textContent = state.age || '—';
+  const pp = document.getElementById('panel-profile');
+  if (pp) {
+    pp.textContent = state.profile === 'girl' ? 'Niña' : (state.profile === 'boy' ? 'Niño' : '—');
+    if (state.profile === 'girl') pp.classList.add('lilac');
+    else pp.classList.remove('lilac');
+  }
+  const ps = document.getElementById('panel-success');
+  if (ps) ps.textContent = `${state.attempts}/3`;
+  const phase = document.getElementById('panel-phase');
+  if (phase) {
+    const phases = {
+      'inhale': '🌬️ Tomar aire',
+      'blow-fast': '💨 Soplando fuerte',
+      'blow-long': '🌀 Soplo largo'
+    };
+    phase.textContent = phases[state.phase] || '🌬️ Tomar aire';
+  }
+  const pa2 = document.getElementById('panel-attempt');
+  if (pa2) pa2.textContent = state.currentAttempt;
+  const timings = document.getElementById('panel-timings');
+  if (timings && state.age) {
+    const c = getAgeConfig();
+    timings.textContent = `Inhalar: ${c.inhale}s · Soplo fuerte: ${c.blowFast}s · Soplo largo: ${c.blowLong}s`;
+  } else if (timings) {
+    timings.textContent = '—';
+  }
+}
+
+function resetGame() {
+  clearPhaseCountdown();
+  if (motiveInterval) clearInterval(motiveInterval);
+  cancelSpeech();
+  state.profile = null;
+  state.age = null;
+  state.attempts = 0;
+  state.currentAttempt = 1;
+  state.phase = 'inhale';
+  // Reset UI
+  document.getElementById('card-boy').classList.remove('selected');
+  document.getElementById('card-girl').classList.remove('selected');
+  document.getElementById('check-boy').style.display = 'none';
+  document.getElementById('check-girl').style.display = 'none';
+  const pc = document.getElementById('btn-profile-continue');
+  if (pc) { pc.style.opacity = '0.4'; pc.style.pointerEvents = 'none'; pc.classList.remove('lilac-btn'); }
+  const ac = document.getElementById('btn-age-continue');
+  if (ac) { ac.style.opacity = '0.4'; ac.style.pointerEvents = 'none'; }
+  document.querySelectorAll('.age-btn').forEach(b => b.classList.remove('selected','girl-selected'));
+  goTo('screen-splash');
+}
+
+// ==============================
+// DEMO HELPERS
+// ==============================
+function showIntroDemo() {
+  if (!state.profile) state.profile = 'boy';
+  goToIntro();
+}
+
+function goToInhaleDemo() {
+  if (!state.profile) state.profile = 'boy';
+  if (!state.age) state.age = 6;
+  updateCharacters();
+  updateHeaders();
+  goToInhale();
+}
+
+function showVictoryDemo() {
+  if (!state.profile) state.profile = 'boy';
+  state.attempts = 3;
+  updateAttemptCircles();
+  showVictory();
+}
+
+// ==============================
+// INIT
+// ==============================
+updateHeaders();
+</script>
+
+</body>
+</html>
